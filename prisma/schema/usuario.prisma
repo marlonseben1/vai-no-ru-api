@@ -1,0 +1,25 @@
+enum Perfil {
+  AlunoGraduacaoUPF              @map("Aluno graduação UPF")
+  AlunoPosGraduacaoUPF           @map("Aluno pós-graduação UPF")
+  AlunoCreatiUPF                 @map("Aluno Creati UPF")
+  AlunoIntegradoUPF              @map("Aluno Integrado UPF")
+  ProfessorOuComunidadeExterna   @map("Professor ou Comunidade externa")
+  FuncionarioUPF                 @map("Funcionário UPF")
+  ResidenteMultiprofissional     @map("Residente multiprofissional")
+  EstudanteRedeMunicipalEstadual @map("Estudante rede municipal/estadual")
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nome      String
+  perfil    Perfil
+  matricula String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  reservas Reserva[]
+
+  @@index([matricula])
+  @@map("usuarios")
+}

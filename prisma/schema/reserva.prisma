@@ -1,0 +1,43 @@
+enum Refeicao {
+  Almoco        @map("Almoço")
+  Jantar
+  AlmocoEJantar @map("Almoço e jantar")
+}
+
+enum StatusReserva {
+  PENDENTE
+  AGENDADA
+  NAO_AGENDADA
+  INATIVA
+  CANCELADA
+}
+
+model Reserva {
+  id          String        @id @default(cuid())
+  usuarioId   String        @map("usuario_id")
+  dataReserva DateTime      @map("data_reserva") @db.Date
+  refeicao    Refeicao
+  processado  Boolean       @default(false)
+  status      StatusReserva @default(PENDENTE)
+  tentativas  Int           @default(0)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  usuario   Usuario            @relation(fields: [usuarioId], references: [id])
+  historico ReservaHistorico[]
+
+  @@unique([usuarioId, dataReserva])
+  @@map("reservas")
+}
+
+model ReservaHistorico {
+  id        String   @id @default(cuid())
+  reservaId String   @map("reserva_id")
+  acao      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  reserva Reserva @relation(fields: [reservaId], references: [id])
+
+  @@map("reserva_historico")
+}

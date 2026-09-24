@@ -1,0 +1,19 @@
+enum TipoCardapio {
+  Almoco        @map("Almoço")
+  Jantar
+  AlmocoEJantar @map("Almoço e Jantar")
+}
+
+model Cardapio {
+  id        String       @id @default(cuid())
+  data      DateTime     @db.Date
+  tipo      TipoCardapio
+  menuDoDia Json         @map("menu_do_dia")
+  saladas   Json
+  suco      Json?
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  @@unique([data, tipo])
+  @@map("cardapio")
+}
