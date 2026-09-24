@@ -12,7 +12,10 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "ci": "biome ci ."
+    "ci": "biome ci .",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f db"
   },
   "keywords": [],
   "author": "",
