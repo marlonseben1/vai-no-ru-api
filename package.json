@@ -18,7 +18,8 @@
     "db:logs": "docker compose logs -f db",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed": "tsx --env-file=.env prisma/seed/index.ts"
   },
   "keywords": [],
   "author": "",
