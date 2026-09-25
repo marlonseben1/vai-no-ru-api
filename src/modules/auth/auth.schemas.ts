@@ -17,8 +17,9 @@ export const usuarioPublicoSchema = z
     id: z.string(),
     nome: z.string(),
     email: z.email(),
-    perfil: z.string(),
+    perfil: z.string().nullable(),
     matricula: z.string().nullable(),
+    origem: z.enum(['UPF', 'CONVIDADO']),
   })
   .meta({ id: 'UsuarioPublico' });
 

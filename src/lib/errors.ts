@@ -47,6 +47,17 @@ export class ConsentRequiredError extends HttpError {
   }
 }
 
+export class AccountPendingApprovalError extends HttpError {
+  constructor() {
+    super(
+      HttpStatus.FORBIDDEN,
+      'Sua conta de convidado está aguardando aprovação.',
+      undefined,
+      'ACCOUNT_PENDING_APPROVAL',
+    );
+  }
+}
+
 export class NotFoundError extends HttpError {
   constructor(message = 'Resource not found.') {
     super(HttpStatus.NOT_FOUND, message, undefined, 'NOT_FOUND');

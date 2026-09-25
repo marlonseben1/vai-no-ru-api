@@ -1,4 +1,3 @@
-// prisma/schema/usuario.prisma
 enum Perfil {
   AlunoGraduacaoUPF              @map("Aluno graduação UPF")
   AlunoPosGraduacaoUPF           @map("Aluno pós-graduação UPF")
@@ -10,14 +9,26 @@ enum Perfil {
   EstudanteRedeMunicipalEstadual @map("Estudante rede municipal/estadual")
 }
 
+enum OrigemConta {
+  UPF
+  CONVIDADO
+}
+
+enum StatusConta {
+  PENDENTE_APROVACAO
+  ATIVO
+}
+
 model Usuario {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String      @id @default(cuid())
+  email     String      @unique
   nome      String
-  perfil    Perfil
+  perfil    Perfil?
   matricula String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  origem    OrigemConta
+  status    StatusConta @default(PENDENTE_APROVACAO)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
 
   consentimentoLgpdEm     DateTime? @map("consentimento_lgpd_em")
   consentimentoLgpdVersao String?   @map("consentimento_lgpd_versao")
@@ -25,5 +36,6 @@ model Usuario {
   reservas Reserva[]
 
   @@index([matricula])
+  @@index([status])
   @@map("usuarios")
 }
