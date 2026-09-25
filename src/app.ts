@@ -4,6 +4,7 @@ import { pinoHttp } from 'pino-http';
 import { logger } from './lib/logger.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { notFound } from './middlewares/not-found.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
 
 export const app = express();
 
@@ -22,6 +23,8 @@ app.use(express.json());
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/v1/auth', authRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
