@@ -1,6 +1,9 @@
 import express from 'express';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
+import { env } from './config/config.js';
+import { openApiDocument } from './docs/openapi.js';
 import { logger } from './lib/logger.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { notFound } from './middlewares/not-found.js';
@@ -27,6 +30,11 @@ app.get('/health', (_req, res) => {
 
 app.use('/v1/auth', authRoutes);
 app.use('/v1/cardapio', cardapioRoutes);
+
+if (env.NODE_ENV !== 'production') {
+  app.get('/docs/openapi.json', (_req, res) => res.json(openApiDocument));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
+}
 
 app.use(notFound);
 app.use(errorHandler);
