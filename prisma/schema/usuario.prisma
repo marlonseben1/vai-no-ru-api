@@ -1,3 +1,4 @@
+// prisma/schema/usuario.prisma
 enum Perfil {
   AlunoGraduacaoUPF              @map("Aluno graduação UPF")
   AlunoPosGraduacaoUPF           @map("Aluno pós-graduação UPF")
@@ -17,6 +18,9 @@ model Usuario {
   matricula String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  consentimentoLgpdEm     DateTime? @map("consentimento_lgpd_em")
+  consentimentoLgpdVersao String?   @map("consentimento_lgpd_versao")
 
   reservas Reserva[]
 

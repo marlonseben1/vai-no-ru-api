@@ -20,6 +20,7 @@ export function errorHandler(
     res.status(error.status).json({
       success: false,
       message: error.message,
+      ...(error.code ? { code: error.code } : {}),
       ...(error.details ? { details: error.details } : {}),
     });
     return;
@@ -32,7 +33,7 @@ export function errorHandler(
 
   res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
     success: false,
-    message: 'Server internal error',
+    message: 'Internal server error.',
     ...(env.NODE_ENV !== 'production' && {
       detail: error instanceof Error ? error.message : String(error),
     }),
