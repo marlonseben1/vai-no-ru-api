@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { Perfil, Refeicao } from '../../generated/prisma/client.js';
+import {
+  Perfil,
+  Refeicao,
+  StatusReserva,
+} from '../../generated/prisma/client.js';
+import { ALLOWED_SORT_COLUMNS } from './reserva.helpers.js';
 
 export const reservaDiaSchema = z
   .object({
@@ -51,3 +56,19 @@ export const criarReservasSchema = z
     }
   })
   .meta({ id: 'CriarReservasRequest' });
+
+export const listarReservasQuerySchema = z
+  .object({
+    page: z.coerce.number().min(1).default(1),
+    pageSize: z.coerce.number().min(1).max(100).default(10),
+    sort: z.enum(ALLOWED_SORT_COLUMNS).default('dataReserva'),
+    order: z.enum(['asc', 'desc']).default('desc'),
+    dataFiltro: z
+      .enum(['essa_semana', 'semana_passada', 'personalizado'])
+      .optional(),
+    dataInicio: z.iso.date().optional(),
+    dataFim: z.iso.date().optional(),
+    refeicao: z.enum(Refeicao).optional(),
+    situacao: z.enum(StatusReserva).optional(),
+  })
+  .meta({ id: 'ListarReservasQuery' });

@@ -1,7 +1,12 @@
+import dayjs from 'dayjs';
 import type { z } from 'zod';
 import { PERFIS_POR_ORIGEM } from '../../constants/perfil-origem.js';
 import { prisma } from '../../db/prisma.js';
 import { ValidationError } from '../../lib/errors.js';
+import {
+  buildWhereClause,
+  type ListarReservasParams,
+} from './reserva.helpers.js';
 import type { criarReservasSchema } from './reserva.schemas.js';
 
 type CriarReservasInput = z.infer<typeof criarReservasSchema>;
@@ -65,4 +70,32 @@ export async function criarReservas(
 
     return reservasCriadas;
   });
+}
+
+export async function listarReservas(
+  usuarioId: string,
+  params: ListarReservasParams,
+) {
+  const where = buildWhereClause(usuarioId, params);
+  const hoje = dayjs().startOf('day').toDate();
+
+  const [total, reservas] = await Promise.all([
+    prisma.reserva.count({ where }),
+    prisma.reserva.findMany({
+      where,
+      orderBy: { [params.sort]: params.order },
+      skip: (params.page - 1) * params.pageSize,
+      take: params.pageSize,
+    }),
+  ]);
+
+  const data = reservas.map((reserva) => ({
+    id: reserva.id,
+    dataReserva: reserva.dataReserva,
+    refeicao: reserva.refeicao,
+    status: reserva.dataReserva < hoje ? 'INATIVA' : reserva.status,
+    createdAt: reserva.createdAt,
+  }));
+
+  return { data, total, page: params.page, pageSize: params.pageSize };
 }
