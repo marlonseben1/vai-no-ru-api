@@ -42,7 +42,7 @@ export function validateQuery(schema: ZodType) {
 }
 
 export function validateParams(schema: ZodType) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.params);
 
     if (!result.success) {
@@ -52,6 +52,7 @@ export function validateParams(schema: ZodType) {
       );
     }
 
+    res.locals.params = result.data;
     next();
   };
 }

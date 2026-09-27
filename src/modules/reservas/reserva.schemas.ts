@@ -72,3 +72,9 @@ export const listarReservasQuerySchema = z
     situacao: z.enum(StatusReserva).optional(),
   })
   .meta({ id: 'ListarReservasQuery' });
+
+export const reservaIdParamsSchema = z
+  .object({
+    id: z.cuid2(),
+  })
+  .meta({ id: 'ReservaIdParams' });

@@ -3,12 +3,23 @@ import { HttpStatus } from '../../constants/http-status.js';
 import { requireUsuarioId } from '../../lib/auth-context.js';
 import { ApiResponse } from '../../lib/http-response.js';
 import { authenticate } from '../../middlewares/autenticate.js';
-import { validateBody, validateQuery } from '../../middlewares/validate.js';
+import {
+  validateBody,
+  validateParams,
+  validateQuery,
+} from '../../middlewares/validate.js';
 import {
   criarReservasSchema,
   listarReservasQuerySchema,
+  reservaIdParamsSchema,
 } from './reserva.schemas.js';
-import { criarReservas, listarReservas } from './reserva.service.js';
+import {
+  cancelarReserva,
+  criarReservas,
+  getHistoricoReserva,
+  listarReservas,
+  reativarReserva,
+} from './reserva.service.js';
 
 const router = Router();
 
@@ -31,6 +42,42 @@ router.get(
     const usuarioId = requireUsuarioId(req);
     const resultado = await listarReservas(usuarioId, res.locals.query);
     ApiResponse.success(res, resultado);
+  },
+);
+
+router.delete(
+  '/:id',
+  authenticate,
+  validateParams(reservaIdParamsSchema),
+  async (req, res) => {
+    const usuarioId = requireUsuarioId(req);
+    const { id } = res.locals.params;
+    await cancelarReserva(id, usuarioId);
+    ApiResponse.success(res, { message: 'Reserva cancelada com sucesso' });
+  },
+);
+
+router.put(
+  '/:id',
+  authenticate,
+  validateParams(reservaIdParamsSchema),
+  async (req, res) => {
+    const usuarioId = requireUsuarioId(req);
+    const { id } = res.locals.params;
+    await reativarReserva(id, usuarioId);
+    ApiResponse.success(res, { message: 'Reserva reativada com sucesso' });
+  },
+);
+
+router.get(
+  '/:id/historico',
+  authenticate,
+  validateParams(reservaIdParamsSchema),
+  async (req, res) => {
+    const usuarioId = requireUsuarioId(req);
+    const { id } = res.locals.params;
+    const historico = await getHistoricoReserva(id, usuarioId);
+    ApiResponse.success(res, historico);
   },
 );
 

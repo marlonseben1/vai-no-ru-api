@@ -2,7 +2,11 @@ import dayjs from 'dayjs';
 import type { z } from 'zod';
 import { PERFIS_POR_ORIGEM } from '../../constants/perfil-origem.js';
 import { prisma } from '../../db/prisma.js';
-import { ValidationError } from '../../lib/errors.js';
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from '../../lib/errors.js';
 import {
   buildWhereClause,
   type ListarReservasParams,
@@ -98,4 +102,96 @@ export async function listarReservas(
   }));
 
   return { data, total, page: params.page, pageSize: params.pageSize };
+}
+
+export async function cancelarReserva(reservaId: string, usuarioId: string) {
+  return prisma.$transaction(async (tx) => {
+    const reserva = await tx.reserva.findFirst({
+      where: { id: reservaId, usuarioId },
+    });
+
+    if (!reserva) {
+      throw new NotFoundError('Reserva não encontrada');
+    }
+
+    const hoje = new Date(new Date().toISOString().slice(0, 10));
+    const ehPassado = reserva.dataReserva < hoje;
+    const podeCancelar =
+      !ehPassado &&
+      (reserva.status === 'PENDENTE' || reserva.status === 'NAO_AGENDADA');
+
+    if (!podeCancelar) {
+      throw new ConflictError('Esta reserva não pode ser cancelada');
+    }
+
+    await tx.reserva.update({
+      where: { id: reservaId },
+      data: { status: 'CANCELADA' },
+    });
+
+    await tx.reservaHistorico.create({
+      data: { reservaId, acao: 'cancelada' },
+    });
+  });
+}
+
+export async function reativarReserva(reservaId: string, usuarioId: string) {
+  return prisma.$transaction(async (tx) => {
+    const reserva = await tx.reserva.findFirst({
+      where: { id: reservaId, usuarioId },
+    });
+
+    if (!reserva) {
+      throw new NotFoundError('Reserva não encontrada');
+    }
+
+    const hoje = new Date(new Date().toISOString().slice(0, 10));
+    const ehPassado = reserva.dataReserva < hoje;
+    const podeReativar = !ehPassado && reserva.status === 'CANCELADA';
+
+    if (!podeReativar) {
+      throw new ConflictError('Esta reserva não pode ser reativada');
+    }
+
+    await tx.reserva.update({
+      where: { id: reservaId },
+      data: { status: 'PENDENTE' },
+    });
+
+    await tx.reservaHistorico.create({
+      data: { reservaId, acao: 'reativada' },
+    });
+  });
+}
+
+export async function getHistoricoReserva(
+  reservaId: string,
+  usuarioId: string,
+) {
+  const reserva = await prisma.reserva.findFirst({
+    where: { id: reservaId, usuarioId },
+    select: { id: true, createdAt: true },
+  });
+
+  if (!reserva) {
+    throw new NotFoundError('Reserva não encontrada');
+  }
+
+  const historico = await prisma.reservaHistorico.findMany({
+    where: { reservaId },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (historico.length === 0) {
+    return [
+      {
+        id: 'retroativo',
+        reservaId,
+        acao: 'criada',
+        createdAt: reserva.createdAt,
+      },
+    ];
+  }
+
+  return historico;
 }

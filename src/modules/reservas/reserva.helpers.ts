@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import type { Refeicao, StatusReserva } from '../../generated/prisma/enums.js';
+import type { Refeicao, StatusReserva } from '../../generated/prisma/client.js';
 
 export const ALLOWED_SORT_COLUMNS = [
   'dataReserva',
@@ -29,7 +29,6 @@ function calcularSemana(offsetSemanas: 0 | 1) {
     .subtract(diasDesdeSegunda + offsetSemanas * 7, 'day')
     .startOf('day');
   const domingo = segunda.add(6, 'day').endOf('day');
-
   return { inicio: segunda.toDate(), fim: domingo.toDate() };
 }
 
@@ -54,8 +53,10 @@ export function buildWhereClause(
     case 'personalizado': {
       if (params.dataInicio && params.dataFim) {
         condicoesData.push({
-          gte: new Date(params.dataInicio),
-          lte: new Date(params.dataFim),
+          dataReserva: {
+            gte: new Date(params.dataInicio),
+            lte: new Date(params.dataFim),
+          },
         });
       }
       break;
