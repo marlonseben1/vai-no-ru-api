@@ -14,6 +14,7 @@ const schema = z
     JWT_SECRET: z.string().min(32),
     GOOGLE_FORM_URL_PROD: optionalUrl,
     GOOGLE_FORM_URL_STAGING: optionalUrl,
+    ENABLE_JOBS: z.stringbool().default(true),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && !env.GOOGLE_FORM_URL_PROD) {

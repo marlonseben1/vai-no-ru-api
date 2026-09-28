@@ -193,3 +193,47 @@ export async function getHistoricoReserva(
 
   return historico;
 }
+
+const MAX_TENTATIVAS = 3;
+
+export async function marcarAgendada(reservaId: string) {
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.reserva.updateMany({
+      where: { id: reservaId, status: 'PENDENTE' },
+      data: { status: 'AGENDADA', processado: true },
+    });
+
+    if (count === 0) return;
+
+    await tx.reservaHistorico.create({
+      data: { reservaId, acao: 'AGENDADA' },
+    });
+  });
+}
+
+export async function registrarTentativaFalha(reservaId: string) {
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.reserva.updateMany({
+      where: { id: reservaId, status: 'PENDENTE' },
+      data: { tentativas: { increment: 1 } },
+    });
+
+    if (count === 0) return;
+
+    const reserva = await tx.reserva.findUniqueOrThrow({
+      where: { id: reservaId },
+      select: { tentativas: true },
+    });
+
+    if (reserva.tentativas < MAX_TENTATIVAS) return;
+
+    await tx.reserva.update({
+      where: { id: reservaId },
+      data: { status: 'NAO_AGENDADA', processado: true },
+    });
+
+    await tx.reservaHistorico.create({
+      data: { reservaId, acao: 'nao_agendada' },
+    });
+  });
+}
