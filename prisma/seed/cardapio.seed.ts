@@ -1,10 +1,12 @@
 import { prisma } from '../../src/db/prisma.js';
+import { adicionarDias, dataDeHoje } from '../../src/lib/dates.js';
 
 export async function seedCardapio() {
+  const hoje = dataDeHoje();
   await prisma.cardapio.createMany({
     data: [
       {
-        data: new Date(),
+        data: hoje,
         tipo: 'Almoco',
         menuDoDia: [
           { nome: 'Arroz e feijão' },
@@ -14,7 +16,7 @@ export async function seedCardapio() {
         saladas: ['Alface', 'Tomate', 'Cenoura ralada'],
       },
       {
-        data: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        data: adicionarDias(hoje, 1),
         tipo: 'Jantar',
         menuDoDia: [{ nome: 'Sopa de legumes' }, { nome: 'Pão integral' }],
         saladas: ['Rúcula', 'Pepino'],

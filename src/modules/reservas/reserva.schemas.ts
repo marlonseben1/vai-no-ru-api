@@ -4,6 +4,7 @@ import {
   Refeicao,
   StatusReserva,
 } from '../../generated/prisma/client.js';
+import { getDataDeHojeISO } from '../../lib/dates.js';
 import { ALLOWED_SORT_COLUMNS } from './reserva.helpers.js';
 
 export const reservaDiaSchema = z
@@ -29,7 +30,7 @@ export const criarReservasSchema = z
       .min(1, 'Você deve informar pelo menos uma data')
       .refine(
         (dias) => {
-          const hoje = new Date().toISOString().slice(0, 10);
+          const hoje = getDataDeHojeISO();
           return dias.every((d) => d.data >= hoje);
         },
         { error: 'Não é possível reservar datas passadas' },

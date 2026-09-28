@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { adicionarDias, dataDeHoje } from '../../lib/dates.js';
 
 const LIMITE_PADRAO_DIAS = 60;
 
@@ -11,6 +12,7 @@ export async function listarCardapio({
   dataInicio,
   dataFim,
 }: ListarCardapioInput) {
+  const hoje = dataDeHoje();
   const filtroData =
     dataInicio || dataFim
       ? {
@@ -18,8 +20,8 @@ export async function listarCardapio({
           ...(dataFim ? { lte: new Date(dataFim) } : {}),
         }
       : {
-          gte: new Date(),
-          lte: new Date(Date.now() + LIMITE_PADRAO_DIAS * 24 * 60 * 60 * 1000),
+          gte: hoje,
+          lte: adicionarDias(hoje, LIMITE_PADRAO_DIAS),
         };
 
   return prisma.cardapio.findMany({

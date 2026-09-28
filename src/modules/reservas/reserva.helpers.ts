@@ -1,5 +1,5 @@
-import dayjs from 'dayjs';
 import type { Refeicao, StatusReserva } from '../../generated/prisma/client.js';
+import { adicionarDias, dataDeHoje } from '../../lib/dates.js';
 
 export const ALLOWED_SORT_COLUMNS = [
   'dataReserva',
@@ -23,20 +23,20 @@ export interface ListarReservasParams {
 }
 
 function calcularSemana(offsetSemanas: 0 | 1) {
-  const diaSemana = dayjs().day();
+  const hoje = dataDeHoje();
+  const diaSemana = hoje.getUTCDay(); // 0 = domingo
   const diasDesdeSegunda = diaSemana === 0 ? 6 : diaSemana - 1;
-  const segunda = dayjs()
-    .subtract(diasDesdeSegunda + offsetSemanas * 7, 'day')
-    .startOf('day');
-  const domingo = segunda.add(6, 'day').endOf('day');
-  return { inicio: segunda.toDate(), fim: domingo.toDate() };
+
+  const segunda = adicionarDias(hoje, -(diasDesdeSegunda + offsetSemanas * 7));
+  const domingo = adicionarDias(segunda, 6);
+  return { inicio: segunda, fim: domingo };
 }
 
 export function buildWhereClause(
   usuarioId: string,
   params: ListarReservasParams,
 ) {
-  const hoje = dayjs().startOf('day').toDate();
+  const hoje = dataDeHoje();
   const condicoesData: Record<string, unknown>[] = [];
 
   switch (params.dataFiltro) {

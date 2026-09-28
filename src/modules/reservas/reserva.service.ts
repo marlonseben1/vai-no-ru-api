@@ -1,7 +1,7 @@
-import dayjs from 'dayjs';
 import type { z } from 'zod';
 import { PERFIS_POR_ORIGEM } from '../../constants/perfil-origem.js';
 import { prisma } from '../../db/prisma.js';
+import { dataDeHoje } from '../../lib/dates.js';
 import {
   ConflictError,
   NotFoundError,
@@ -81,7 +81,7 @@ export async function listarReservas(
   params: ListarReservasParams,
 ) {
   const where = buildWhereClause(usuarioId, params);
-  const hoje = dayjs().startOf('day').toDate();
+  const hoje = dataDeHoje();
 
   const [total, reservas] = await Promise.all([
     prisma.reserva.count({ where }),
@@ -114,8 +114,7 @@ export async function cancelarReserva(reservaId: string, usuarioId: string) {
       throw new NotFoundError('Reserva não encontrada');
     }
 
-    const hoje = new Date(new Date().toISOString().slice(0, 10));
-    const ehPassado = reserva.dataReserva < hoje;
+    const ehPassado = reserva.dataReserva < dataDeHoje();
     const podeCancelar =
       !ehPassado &&
       (reserva.status === 'PENDENTE' || reserva.status === 'NAO_AGENDADA');
@@ -145,8 +144,7 @@ export async function reativarReserva(reservaId: string, usuarioId: string) {
       throw new NotFoundError('Reserva não encontrada');
     }
 
-    const hoje = new Date(new Date().toISOString().slice(0, 10));
-    const ehPassado = reserva.dataReserva < hoje;
+    const ehPassado = reserva.dataReserva < dataDeHoje();
     const podeReativar = !ehPassado && reserva.status === 'CANCELADA';
 
     if (!podeReativar) {
