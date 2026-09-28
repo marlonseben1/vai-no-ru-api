@@ -8,7 +8,44 @@ import {
   cardapioItemSchema,
   listarCardapioQuerySchema,
 } from '../modules/cardapio/cardapio.schemas.js';
+import {
+  criarReservasSchema,
+  listarReservasQuerySchema,
+  reservaIdParamsSchema,
+} from '../modules/reservas/reserva.schemas.js';
 import { errorResponseSchema } from './schemas.js';
+
+const reservaItemSchema = z
+  .object({
+    id: z.string(),
+    dataReserva: z.string(),
+    refeicao: z.string(),
+    status: z.string(),
+    createdAt: z.string(),
+  })
+  .meta({ id: 'ReservaItem' });
+
+const reservaHistoricoItemSchema = z
+  .object({
+    id: z.string(),
+    reservaId: z.string(),
+    acao: z.string(),
+    createdAt: z.string(),
+  })
+  .meta({ id: 'ReservaHistoricoItem' });
+
+const listarReservasResponseSchema = z
+  .object({
+    data: z.array(reservaItemSchema),
+    total: z.number(),
+    page: z.number(),
+    pageSize: z.number(),
+  })
+  .meta({ id: 'ListarReservasResponse' });
+
+const mensagemResponseSchema = z
+  .object({ message: z.string() })
+  .meta({ id: 'MensagemResponse' });
 
 export const openApiDocument = createDocument({
   openapi: '3.1.0',
@@ -49,7 +86,7 @@ export const openApiDocument = createDocument({
           },
           '403': {
             description:
-              'Consentimento com a política de privacidade necessário.',
+              'Consentimento pendente ou conta de convidado aguardando aprovação.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
           '429': {
@@ -59,6 +96,7 @@ export const openApiDocument = createDocument({
         },
       },
     },
+
     '/cardapio': {
       get: {
         tags: ['Cardápio'],
@@ -78,6 +116,149 @@ export const openApiDocument = createDocument({
           },
           '422': {
             description: 'Parâmetros de busca inválidos.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
+
+    '/reservas': {
+      post: {
+        tags: ['Reservas'],
+        summary: 'Cria reservas para um ou mais dias',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          content: { 'application/json': { schema: criarReservasSchema } },
+        },
+        responses: {
+          '201': {
+            description: 'Reservas criadas com sucesso.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: z.array(reservaItemSchema),
+                }),
+              },
+            },
+          },
+          '401': {
+            description: 'Token ausente ou inválido.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '422': {
+            description:
+              'Dados inválidos, incluindo perfil incompatível com o tipo da conta.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+      get: {
+        tags: ['Reservas'],
+        summary: 'Lista as reservas do usuário autenticado',
+        security: [{ bearerAuth: [] }],
+        requestParams: { query: listarReservasQuerySchema },
+        responses: {
+          '200': {
+            description: 'Lista paginada de reservas.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: listarReservasResponseSchema,
+                }),
+              },
+            },
+          },
+          '401': {
+            description: 'Token ausente ou inválido.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '422': {
+            description: 'Parâmetros de busca inválidos.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
+
+    '/reservas/{id}': {
+      delete: {
+        tags: ['Reservas'],
+        summary: 'Cancela uma reserva',
+        security: [{ bearerAuth: [] }],
+        requestParams: { path: reservaIdParamsSchema },
+        responses: {
+          '200': {
+            description: 'Reserva cancelada com sucesso.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: mensagemResponseSchema,
+                }),
+              },
+            },
+          },
+          '404': {
+            description: 'Reserva não encontrada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '409': {
+            description: 'Esta reserva não pode ser cancelada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+      put: {
+        tags: ['Reservas'],
+        summary: 'Reativa uma reserva cancelada',
+        security: [{ bearerAuth: [] }],
+        requestParams: { path: reservaIdParamsSchema },
+        responses: {
+          '200': {
+            description: 'Reserva reativada com sucesso.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: mensagemResponseSchema,
+                }),
+              },
+            },
+          },
+          '404': {
+            description: 'Reserva não encontrada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '409': {
+            description: 'Esta reserva não pode ser reativada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
+
+    '/reservas/{id}/historico': {
+      get: {
+        tags: ['Reservas'],
+        summary: 'Lista o histórico de ações de uma reserva',
+        security: [{ bearerAuth: [] }],
+        requestParams: { path: reservaIdParamsSchema },
+        responses: {
+          '200': {
+            description: 'Histórico de ações da reserva.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: z.array(reservaHistoricoItemSchema),
+                }),
+              },
+            },
+          },
+          '404': {
+            description: 'Reserva não encontrada.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
