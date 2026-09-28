@@ -20,6 +20,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx --env-file=.env prisma/seed/index.ts",
+    "db:migrate:deploy": "prisma migrate deploy",
     "job:executar": "tsx --env-file=.env scripts/executar-job.ts"
   },
   "keywords": [],
