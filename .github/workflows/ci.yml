@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm ci
+
+  build:
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: vai_no_ru
+          POSTGRES_PASSWORD: vai_no_ru_dev
+          POSTGRES_DB: vai_no_ru
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vai_no_ru"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://vai_no_ru:vai_no_ru_dev@localhost:5432/vai_no_ru
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm prisma migrate deploy
+
+      - run: pnpm build
+
+      - name: Build da imagem Docker
+        run: docker build -t vai-no-ru-api:ci .
