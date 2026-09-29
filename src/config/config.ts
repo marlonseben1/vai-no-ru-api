@@ -12,6 +12,7 @@ const schema = z
     DATABASE_URL: z.url(),
     GOOGLE_CLIENT_ID: z.string().min(1),
     JWT_SECRET: z.string().min(32),
+    WEB_URL: z.url(),
     GOOGLE_FORM_URL_PROD: optionalUrl,
     GOOGLE_FORM_URL_STAGING: optionalUrl,
     ENABLE_JOBS: z.stringbool().default(true),

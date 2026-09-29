@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { AUTH_COOKIE_NAME } from '../lib/cookies.js';
 import { UnauthorizedError } from '../lib/errors.js';
 import { verificarToken } from '../lib/jtw.js';
 
@@ -7,18 +8,16 @@ export function authenticate(
   _res: Response,
   next: NextFunction,
 ): void {
-  const header = req.headers.authorization;
+  const token = req.cookies?.[AUTH_COOKIE_NAME];
 
-  if (!header?.startsWith('Bearer ')) {
-    throw new UnauthorizedError('Token ausente ou inválido.');
+  if (!token) {
+    throw new UnauthorizedError('Sessão ausente ou expirada.');
   }
-
-  const token = header.slice('Bearer '.length);
 
   try {
     req.usuario = verificarToken(token);
   } catch {
-    throw new UnauthorizedError('Token ausente ou inválido.');
+    throw new UnauthorizedError('Sessão ausente ou expirada.');
   }
 
   next();

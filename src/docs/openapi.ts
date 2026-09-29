@@ -3,6 +3,7 @@ import { createDocument } from 'zod-openapi';
 import {
   loginResponseSchema,
   loginSchema,
+  usuarioPublicoSchema,
 } from '../modules/auth/auth.schemas.js';
 import {
   cardapioItemSchema,
@@ -57,7 +58,7 @@ export const openApiDocument = createDocument({
   servers: [{ url: '/v1' }],
   components: {
     securitySchemes: {
-      bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      cookieAuth: { type: 'apiKey', in: 'cookie', name: 'vairu_session' },
     },
   },
   paths: {
@@ -97,6 +98,50 @@ export const openApiDocument = createDocument({
       },
     },
 
+    '/auth/me': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Retorna o usuário da sessão atual',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Sessão válida.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: z.object({ usuario: usuarioPublicoSchema }),
+                }),
+              },
+            },
+          },
+          '401': {
+            description: 'Sessão ausente ou expirada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
+    '/auth/logout': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Encerra a sessão atual',
+        responses: {
+          '200': {
+            description: 'Sessão encerrada.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: mensagemResponseSchema,
+                }),
+              },
+            },
+          },
+        },
+      },
+    },
+
     '/cardapio': {
       get: {
         tags: ['Cardápio'],
@@ -126,7 +171,7 @@ export const openApiDocument = createDocument({
       post: {
         tags: ['Reservas'],
         summary: 'Cria reservas para um ou mais dias',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           content: { 'application/json': { schema: criarReservasSchema } },
         },
@@ -156,7 +201,7 @@ export const openApiDocument = createDocument({
       get: {
         tags: ['Reservas'],
         summary: 'Lista as reservas do usuário autenticado',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestParams: { query: listarReservasQuerySchema },
         responses: {
           '200': {
@@ -186,7 +231,7 @@ export const openApiDocument = createDocument({
       delete: {
         tags: ['Reservas'],
         summary: 'Cancela uma reserva',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestParams: { path: reservaIdParamsSchema },
         responses: {
           '200': {
@@ -213,7 +258,7 @@ export const openApiDocument = createDocument({
       put: {
         tags: ['Reservas'],
         summary: 'Reativa uma reserva cancelada',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestParams: { path: reservaIdParamsSchema },
         responses: {
           '200': {
@@ -243,7 +288,7 @@ export const openApiDocument = createDocument({
       get: {
         tags: ['Reservas'],
         summary: 'Lista o histórico de ações de uma reserva',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestParams: { path: reservaIdParamsSchema },
         responses: {
           '200': {

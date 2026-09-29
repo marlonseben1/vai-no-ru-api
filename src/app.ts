@@ -1,3 +1,5 @@
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
@@ -13,6 +15,10 @@ import { reservaRoutes } from './modules/reservas/reserva.routes.js';
 
 export const app = express();
 
+if (env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(
   pinoHttp({
     logger,
@@ -23,6 +29,13 @@ app.use(
   }),
 );
 app.use(helmet());
+app.use(
+  cors({
+    origin: env.WEB_URL,
+    credentials: true,
+  }),
+);
+app.use(cookieParser());
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
@@ -31,7 +44,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/v1/auth', authRoutes);
 app.use('/v1/cardapio', cardapioRoutes);
-app.use('v1/reservas', reservaRoutes);
+app.use('/v1/reservas', reservaRoutes);
 
 if (env.NODE_ENV !== 'production') {
   app.get('/docs/openapi.json', (_req, res) => res.json(openApiDocument));

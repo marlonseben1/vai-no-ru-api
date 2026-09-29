@@ -96,3 +96,20 @@ export async function loginComGoogle({
     },
   };
 }
+
+export async function buscarUsuarioAtual(usuarioId: string) {
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+
+  if (!usuario) {
+    throw new UnauthorizedError();
+  }
+
+  return {
+    id: usuario.id,
+    nome: usuario.nome,
+    email: usuario.email,
+    perfil: usuario.perfil,
+    matricula: usuario.matricula,
+    origem: usuario.origem,
+  };
+}

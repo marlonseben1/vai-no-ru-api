@@ -25,10 +25,6 @@ export const usuarioPublicoSchema = z
 
 export const loginResponseSchema = z
   .object({
-    token: z.string().meta({
-      description:
-        'JWT a ser enviado no header Authorization das próximas requisições.',
-    }),
     usuario: usuarioPublicoSchema,
   })
   .meta({ id: 'LoginResponse' });
