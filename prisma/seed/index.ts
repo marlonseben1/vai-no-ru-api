@@ -1,7 +1,9 @@
 import { seedCardapio } from './cardapio.seed.js';
+import { seedReservas } from './reserva.seed.js';
 
 async function main() {
   await seedCardapio();
+  await seedReservas();
   console.log('Seed concluída');
 }
 
