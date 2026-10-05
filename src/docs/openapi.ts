@@ -147,9 +147,14 @@ export const openApiDocument = createDocument({
             description: 'Sessão ausente ou expirada.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
+          '409': {
+            description:
+              'A matrícula deduzida do e-mail já pertence a outra conta.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
           '422': {
             description:
-              'Dados inválidos, incluindo perfil incompatível com o tipo da conta.',
+              'Dados inválidos, perfil incompatível com o tipo da conta ou Aluno graduação UPF sem e-mail com número de matrícula.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },

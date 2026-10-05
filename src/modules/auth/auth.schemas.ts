@@ -38,21 +38,9 @@ export const onboardingSchema = z
   .object({
     nome: z.string().min(3, 'O nome deve conter pelo menos 3 caracteres'),
     perfil: z.enum(Perfil),
-    matricula: z
-      .string()
-      .regex(/^\d*$/, 'A matrícula deve conter apenas números')
-      .optional(),
   })
-  .superRefine((body, ctx) => {
-    if (
-      body.perfil === Perfil.AlunoGraduacaoUPF &&
-      (!body.matricula || body.matricula.trim() === '')
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Informe o número da matrícula',
-        path: ['matricula'],
-      });
-    }
-  })
-  .meta({ id: 'OnboardingRequest' });
+  .meta({
+    id: 'OnboardingRequest',
+    description:
+      'A matrícula não é enviada: o servidor a deduz do e-mail institucional.',
+  });

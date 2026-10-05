@@ -80,3 +80,9 @@ export class ConflictError extends HttpError {
     super(HttpStatus.CONFLICT, message, undefined, 'CONFLICT');
   }
 }
+
+export class MatriculaEmUsoError extends ConflictError {
+  constructor() {
+    super('Esta matrícula já está vinculada a outra conta.');
+  }
+}

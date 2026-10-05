@@ -4,14 +4,16 @@ import { env } from '../../config/config.js';
 import { PERFIS_POR_ORIGEM } from '../../constants/perfil-origem.js';
 import { POLICY_VERSION } from '../../constants/privacy-policy.js';
 import { prisma } from '../../db/prisma.js';
-import type { Usuario } from '../../generated/prisma/client.js';
+import { Prisma, type Usuario } from '../../generated/prisma/client.js';
 import {
   AccountPendingApprovalError,
   ConsentRequiredError,
+  MatriculaEmUsoError,
   UnauthorizedError,
   ValidationError,
 } from '../../lib/errors.js';
 import { assinarToken } from '../../lib/jtw.js';
+import { extrairMatriculaDoEmail } from './auth.helpers.js';
 import type { onboardingSchema } from './auth.schemas.js';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
@@ -35,6 +37,20 @@ function serializarUsuario(usuario: Usuario) {
     origem: usuario.origem,
     onboardingConcluidoEm: usuario.onboardingConcluidoEm?.toISOString() ?? null,
   };
+}
+
+function determinarMatricula(email: string, perfil: Usuario['perfil']) {
+  if (perfil !== 'AlunoGraduacaoUPF') return null;
+
+  const matricula = extrairMatriculaDoEmail(email);
+
+  if (!matricula) {
+    throw new ValidationError(
+      'O perfil Aluno graduação UPF exige um e-mail institucional com o número da matrícula.',
+    );
+  }
+
+  return matricula;
 }
 
 function determinarOrigem(email: string): 'UPF' | 'CONVIDADO' {
@@ -134,18 +150,37 @@ export async function concluirOnboarding(
     );
   }
 
-  const atualizado = await prisma.usuario.update({
-    where: { id: usuarioId },
-    data: {
-      nome: input.nome,
-      perfil: input.perfil,
-      matricula:
-        input.perfil === 'AlunoGraduacaoUPF'
-          ? (input.matricula?.trim() ?? null)
-          : null,
-      onboardingConcluidoEm: usuario.onboardingConcluidoEm ?? new Date(),
-    },
-  });
+  const matricula = determinarMatricula(usuario.email, input.perfil);
 
-  return serializarUsuario(atualizado);
+  if (matricula) {
+    const outraConta = await prisma.usuario.findFirst({
+      where: { matricula, id: { not: usuarioId } },
+      select: { id: true },
+    });
+
+    if (outraConta) throw new MatriculaEmUsoError();
+  }
+
+  try {
+    const atualizado = await prisma.usuario.update({
+      where: { id: usuarioId },
+      data: {
+        nome: input.nome,
+        perfil: input.perfil,
+        matricula,
+        onboardingConcluidoEm: usuario.onboardingConcluidoEm ?? new Date(),
+      },
+    });
+
+    return serializarUsuario(atualizado);
+  } catch (err) {
+    // outra requisição pode ter gravado a mesma matrícula entre a checagem e o update
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      throw new MatriculaEmUsoError();
+    }
+    throw err;
+  }
 }

@@ -24,7 +24,7 @@ model Usuario {
   email     String      @unique
   nome      String
   perfil    Perfil?
-  matricula String?
+  matricula String?  @unique
   origem    OrigemConta
   status    StatusConta @default(PENDENTE_APROVACAO)
   createdAt DateTime    @default(now()) @map("created_at")
@@ -37,7 +37,6 @@ model Usuario {
 
   reservas Reserva[]
 
-  @@index([matricula])
   @@index([status])
   @@map("usuarios")
 }
