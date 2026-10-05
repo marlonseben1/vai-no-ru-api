@@ -8,6 +8,20 @@ const formatarData = new Intl.DateTimeFormat('en-CA', {
   day: '2-digit',
 });
 
+const formatarHorario = new Intl.DateTimeFormat('en-GB', {
+  timeZone: FUSO_RU,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+export function getMinutosDoDia(agora = new Date()): number {
+  const partes = formatarHorario.formatToParts(agora);
+  const valor = (tipo: string) =>
+    Number(partes.find((parte) => parte.type === tipo)?.value);
+  return valor('hour') * 60 + valor('minute');
+}
+
 export function getDataDeHojeISO(): string {
   return formatarData.format(new Date());
 }

@@ -5,10 +5,14 @@ import {
   ConflictError,
   NotFoundError,
   OnboardingRequiredError,
+  ValidationError,
 } from '../../lib/errors.js';
+import { REFEICAO_LABEL } from '../formulario/formulario.constants.js';
 import {
   buildWhereClause,
+  formatarHorarioLimite,
   type ListarReservasParams,
+  prazoEncerrado,
 } from './reserva.helpers.js';
 import type { criarReservasSchema } from './reserva.schemas.js';
 
@@ -24,6 +28,19 @@ export async function criarReservas(
 
   if (!usuario.onboardingConcluidoEm) {
     throw new OnboardingRequiredError();
+  }
+
+  const foraDoPrazo = input.dias.filter((dia) =>
+    prazoEncerrado(dia.refeicao, dia.data),
+  );
+
+  if (foraDoPrazo.length > 0) {
+    const detalhes = foraDoPrazo.map((dia) => ({
+      field: 'dias',
+      message: `O prazo para reservar ${REFEICAO_LABEL[dia.refeicao].toLowerCase()} hoje terminou às ${formatarHorarioLimite(dia.refeicao)}.`,
+    }));
+
+    throw new ValidationError(detalhes[0]?.message ?? '', detalhes);
   }
 
   return prisma.$transaction(async (tx) => {
@@ -135,6 +152,18 @@ export async function reativarReserva(reservaId: string, usuarioId: string) {
 
     if (!podeReativar) {
       throw new ConflictError('Esta reserva não pode ser reativada');
+    }
+
+    // fora do prazo o cron já passou e a reserva ficaria pendente para sempre
+    if (
+      prazoEncerrado(
+        reserva.refeicao,
+        reserva.dataReserva.toISOString().slice(0, 10),
+      )
+    ) {
+      throw new ConflictError(
+        `Esta reserva não pode ser reativada: o prazo de hoje terminou às ${formatarHorarioLimite(reserva.refeicao)}.`,
+      );
     }
 
     await tx.reserva.update({

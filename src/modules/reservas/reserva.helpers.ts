@@ -1,5 +1,31 @@
+import {
+  HORARIO_LIMITE,
+  janelaDaRefeicao,
+} from '../../constants/janelas-envio.js';
 import type { Refeicao, StatusReserva } from '../../generated/prisma/client.js';
-import { adicionarDias, dataDeHoje } from '../../lib/dates.js';
+import {
+  adicionarDias,
+  dataDeHoje,
+  getDataDeHojeISO,
+  getMinutosDoDia,
+} from '../../lib/dates.js';
+
+export function formatarHorarioLimite(refeicao: Refeicao): string {
+  const { hora, minuto } = HORARIO_LIMITE[janelaDaRefeicao(refeicao)];
+  return `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
+}
+
+// Só reservas de hoje podem estar fora do prazo: o cron envia no próprio dia.
+export function prazoEncerrado(
+  refeicao: Refeicao,
+  dataISO: string,
+  agora = new Date(),
+): boolean {
+  if (dataISO !== getDataDeHojeISO()) return false;
+
+  const { hora, minuto } = HORARIO_LIMITE[janelaDaRefeicao(refeicao)];
+  return getMinutosDoDia(agora) >= hora * 60 + minuto;
+}
 
 export const ALLOWED_SORT_COLUMNS = [
   'dataReserva',

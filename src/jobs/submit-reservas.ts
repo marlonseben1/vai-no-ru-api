@@ -1,3 +1,7 @@
+import {
+  type JanelaEnvio,
+  REFEICOES_POR_JANELA,
+} from '../constants/janelas-envio.js';
 import { prisma } from '../db/prisma.js';
 import { dataDeHoje, getDataDeHojeISO } from '../lib/dates.js';
 import { logger } from '../lib/logger.js';
@@ -12,12 +16,14 @@ const emAndamento = new Set<Promise<void>>();
 async function submitReservasPendentes(
   job: string,
   tentativasFiltro: number[],
+  janela?: JanelaEnvio,
 ): Promise<void> {
   const pendentes = await prisma.reserva.findMany({
     where: {
       dataReserva: dataDeHoje(),
       status: 'PENDENTE',
       tentativas: { in: tentativasFiltro },
+      ...(janela && { refeicao: { in: REFEICOES_POR_JANELA[janela] } }),
     },
     include: { usuario: true },
     orderBy: { createdAt: 'asc' },
@@ -82,7 +88,7 @@ async function submitReservasPendentes(
   }
 
   logger.info(
-    { job, data: getDataDeHojeISO(), tentativasFiltro, ...resumo },
+    { job, data: getDataDeHojeISO(), tentativasFiltro, janela, ...resumo },
     'Job concluído.',
   );
 }
@@ -90,10 +96,12 @@ async function submitReservasPendentes(
 export function executarJob(
   job: string,
   tentativasFiltro: number[],
+  janela?: JanelaEnvio,
 ): Promise<void> {
   const execucao: Promise<void> = submitReservasPendentes(
     job,
     tentativasFiltro,
+    janela,
   ).finally(() => {
     emAndamento.delete(execucao);
   });

@@ -1,4 +1,8 @@
 import cron from 'node-cron';
+import {
+  HORARIO_LIMITE,
+  type JanelaEnvio,
+} from '../constants/janelas-envio.js';
 import { logger } from '../lib/logger.js';
 import { getAmbienteFormulario } from '../modules/formulario/formulario.service.js';
 import { aguardarExecucoes, executarJob } from './submit-reservas.js';
@@ -9,13 +13,32 @@ interface Agendamento {
   name: string;
   expressao: string;
   tentativas: number[];
+  janela: JanelaEnvio;
+}
+
+// envia no horário limite da janela e refaz 5 e 10 minutos depois, só em dias úteis
+function criarAgendamentos(janela: JanelaEnvio, nome: string): Agendamento[] {
+  const { hora, minuto } = HORARIO_LIMITE[janela];
+
+  return [
+    {
+      name: `submit-${nome}`,
+      expressao: `${minuto} ${hora} * * 1-5`,
+      tentativas: [0],
+      janela,
+    },
+    {
+      name: `retry-${nome}`,
+      expressao: `${minuto + 5},${minuto + 10} ${hora} * * 1-5`,
+      tentativas: [1, 2],
+      janela,
+    },
+  ];
 }
 
 const AGENDAMENTOS: Agendamento[] = [
-  { name: 'submit-dia', expressao: '30 9,15 * * 1-5', tentativas: [0] },
-  { name: 'submit-noite', expressao: '0 23 * * 1-5', tentativas: [0] },
-  { name: 'retry-dia', expressao: '35,40 9,15 * * 1-5', tentativas: [1, 2] },
-  { name: 'retry-noite', expressao: '5,10 23 * * 1-5', tentativas: [1, 2] },
+  ...criarAgendamentos('MANHA', 'manha'),
+  ...criarAgendamentos('TARDE', 'tarde'),
 ];
 
 const tasks: ReturnType<typeof cron.schedule>[] = [];
@@ -28,7 +51,11 @@ export function iniciarJobs(): void {
       agendamento.expressao,
       async () => {
         try {
-          await executarJob(agendamento.name, agendamento.tentativas);
+          await executarJob(
+            agendamento.name,
+            agendamento.tentativas,
+            agendamento.janela,
+          );
         } catch (err) {
           logger.error({ err, job: agendamento.name }, 'Job falhou.');
         }

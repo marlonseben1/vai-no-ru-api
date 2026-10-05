@@ -230,7 +230,8 @@ export const openApiDocument = createDocument({
             content: { 'application/json': { schema: errorResponseSchema } },
           },
           '422': {
-            description: 'Dados inválidos.',
+            description:
+              'Dados inválidos, incluindo reserva para hoje fora do prazo (almoço e almoço + jantar até 09:30; jantar até 15:30).',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
