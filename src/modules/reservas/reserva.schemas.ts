@@ -1,9 +1,5 @@
 import { z } from 'zod';
-import {
-  Perfil,
-  Refeicao,
-  StatusReserva,
-} from '../../generated/prisma/client.js';
+import { Refeicao, StatusReserva } from '../../generated/prisma/client.js';
 import { getDataDeHojeISO } from '../../lib/dates.js';
 import { ALLOWED_SORT_COLUMNS } from './reserva.helpers.js';
 
@@ -19,12 +15,6 @@ export const reservaDiaSchema = z
 
 export const criarReservasSchema = z
   .object({
-    nome: z.string().min(3, 'O nome deve conter pelo menos 3 caracteres'),
-    matricula: z
-      .string()
-      .regex(/^\d*$/, 'A matrícula deve conter apenas números')
-      .optional(),
-    perfil: z.enum(Perfil),
     dias: z
       .array(reservaDiaSchema)
       .min(1, 'Você deve informar pelo menos uma data')
@@ -43,18 +33,6 @@ export const criarReservasSchema = z
           }),
         { error: 'Reservas só podem ser feitas de segunda a sexta' },
       ),
-  })
-  .superRefine((body, ctx) => {
-    if (
-      body.perfil === Perfil.AlunoGraduacaoUPF &&
-      (!body.matricula || body.matricula.trim() === '')
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Informe o número da matrícula',
-        path: ['matricula'],
-      });
-    }
   })
   .meta({ id: 'CriarReservasRequest' });
 

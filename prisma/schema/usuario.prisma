@@ -33,6 +33,8 @@ model Usuario {
   consentimentoLgpdEm     DateTime? @map("consentimento_lgpd_em")
   consentimentoLgpdVersao String?   @map("consentimento_lgpd_versao")
 
+  onboardingConcluidoEm DateTime? @map("onboarding_concluido_em")
+
   reservas Reserva[]
 
   @@index([matricula])

@@ -3,6 +3,7 @@ import { createDocument } from 'zod-openapi';
 import {
   loginResponseSchema,
   loginSchema,
+  onboardingSchema,
   usuarioPublicoSchema,
 } from '../modules/auth/auth.schemas.js';
 import {
@@ -122,6 +123,38 @@ export const openApiDocument = createDocument({
         },
       },
     },
+    '/auth/onboarding': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Conclui o onboarding salvando nome, perfil e matrícula',
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          content: { 'application/json': { schema: onboardingSchema } },
+        },
+        responses: {
+          '200': {
+            description: 'Onboarding concluído.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: z.object({ usuario: usuarioPublicoSchema }),
+                }),
+              },
+            },
+          },
+          '401': {
+            description: 'Sessão ausente ou expirada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '422': {
+            description:
+              'Dados inválidos, incluindo perfil incompatível com o tipo da conta.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
     '/auth/logout': {
       post: {
         tags: ['Auth'],
@@ -191,9 +224,13 @@ export const openApiDocument = createDocument({
             description: 'Token ausente ou inválido.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
-          '422': {
+          '403': {
             description:
-              'Dados inválidos, incluindo perfil incompatível com o tipo da conta.',
+              'Onboarding não concluído (código ONBOARDING_REQUIRED).',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '422': {
+            description: 'Dados inválidos.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },

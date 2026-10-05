@@ -1,21 +1,40 @@
 import { OAuth2Client } from 'google-auth-library';
+import type { z } from 'zod';
 import { env } from '../../config/config.js';
+import { PERFIS_POR_ORIGEM } from '../../constants/perfil-origem.js';
 import { POLICY_VERSION } from '../../constants/privacy-policy.js';
 import { prisma } from '../../db/prisma.js';
+import type { Usuario } from '../../generated/prisma/client.js';
 import {
   AccountPendingApprovalError,
   ConsentRequiredError,
   UnauthorizedError,
+  ValidationError,
 } from '../../lib/errors.js';
 import { assinarToken } from '../../lib/jtw.js';
+import type { onboardingSchema } from './auth.schemas.js';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 const DOMINIO_UPF = '@upf.br';
 
+type OnboardingInput = z.infer<typeof onboardingSchema>;
+
 interface LoginInput {
   googleToken: string;
   aceitarPolitica?: boolean;
+}
+
+function serializarUsuario(usuario: Usuario) {
+  return {
+    id: usuario.id,
+    nome: usuario.nome,
+    email: usuario.email,
+    perfil: usuario.perfil,
+    matricula: usuario.matricula,
+    origem: usuario.origem,
+    onboardingConcluidoEm: usuario.onboardingConcluidoEm?.toISOString() ?? null,
+  };
 }
 
 function determinarOrigem(email: string): 'UPF' | 'CONVIDADO' {
@@ -84,17 +103,7 @@ export async function loginComGoogle({
 
   const token = assinarToken({ sub: usuario.id });
 
-  return {
-    token,
-    usuario: {
-      id: usuario.id,
-      nome: usuario.nome,
-      email: usuario.email,
-      perfil: usuario.perfil,
-      matricula: usuario.matricula,
-      origem: usuario.origem,
-    },
-  };
+  return { token, usuario: serializarUsuario(usuario) };
 }
 
 export async function buscarUsuarioAtual(usuarioId: string) {
@@ -104,12 +113,39 @@ export async function buscarUsuarioAtual(usuarioId: string) {
     throw new UnauthorizedError();
   }
 
-  return {
-    id: usuario.id,
-    nome: usuario.nome,
-    email: usuario.email,
-    perfil: usuario.perfil,
-    matricula: usuario.matricula,
-    origem: usuario.origem,
-  };
+  return serializarUsuario(usuario);
+}
+
+export async function concluirOnboarding(
+  usuarioId: string,
+  input: OnboardingInput,
+) {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+  });
+
+  if (!usuario) {
+    throw new UnauthorizedError();
+  }
+
+  if (!PERFIS_POR_ORIGEM[usuario.origem].includes(input.perfil)) {
+    throw new ValidationError(
+      'O perfil selecionado não é compatível com o tipo da sua conta.',
+    );
+  }
+
+  const atualizado = await prisma.usuario.update({
+    where: { id: usuarioId },
+    data: {
+      nome: input.nome,
+      perfil: input.perfil,
+      matricula:
+        input.perfil === 'AlunoGraduacaoUPF'
+          ? (input.matricula?.trim() ?? null)
+          : null,
+      onboardingConcluidoEm: usuario.onboardingConcluidoEm ?? new Date(),
+    },
+  });
+
+  return serializarUsuario(atualizado);
 }

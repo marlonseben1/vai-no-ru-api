@@ -29,6 +29,7 @@ async function seedUsuarioTeste() {
       status: 'ATIVO',
       consentimentoLgpdEm: new Date(),
       consentimentoLgpdVersao: 'seed',
+      onboardingConcluidoEm: new Date(),
     },
   });
 }

@@ -58,6 +58,17 @@ export class AccountPendingApprovalError extends HttpError {
   }
 }
 
+export class OnboardingRequiredError extends HttpError {
+  constructor() {
+    super(
+      HttpStatus.FORBIDDEN,
+      'É necessário concluir o onboarding para continuar.',
+      undefined,
+      'ONBOARDING_REQUIRED',
+    );
+  }
+}
+
 export class NotFoundError extends HttpError {
   constructor(message = 'Resource not found.') {
     super(HttpStatus.NOT_FOUND, message, undefined, 'NOT_FOUND');

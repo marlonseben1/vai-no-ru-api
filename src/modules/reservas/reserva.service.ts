@@ -1,11 +1,10 @@
 import type { z } from 'zod';
-import { PERFIS_POR_ORIGEM } from '../../constants/perfil-origem.js';
 import { prisma } from '../../db/prisma.js';
 import { dataDeHoje } from '../../lib/dates.js';
 import {
   ConflictError,
   NotFoundError,
-  ValidationError,
+  OnboardingRequiredError,
 } from '../../lib/errors.js';
 import {
   buildWhereClause,
@@ -23,24 +22,11 @@ export async function criarReservas(
     where: { id: usuarioId },
   });
 
-  const perfisPermitidos = PERFIS_POR_ORIGEM[usuario.origem];
-
-  if (!perfisPermitidos.includes(input.perfil)) {
-    throw new ValidationError(
-      'O perfil selecionado não é compatível com o tipo da sua conta.',
-    );
+  if (!usuario.onboardingConcluidoEm) {
+    throw new OnboardingRequiredError();
   }
 
   return prisma.$transaction(async (tx) => {
-    await tx.usuario.update({
-      where: { id: usuarioId },
-      data: {
-        nome: input.nome,
-        perfil: input.perfil,
-        matricula: input.matricula ?? null,
-      },
-    });
-
     const datasSolicitadas = input.dias.map((dia) => new Date(dia.data));
 
     const existentes = await tx.reserva.findMany({
