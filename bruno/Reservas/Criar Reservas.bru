@@ -1,0 +1,30 @@
+meta {
+  name: Criar Reservas
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/reservas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "dias": [
+      { "data": "2026-10-08", "refeicao": "Almoco" },
+      { "data": "2026-10-09", "refeicao": "AlmocoEJantar" }
+    ]
+  }
+}
+
+script:post-response {
+  const criada = res.body?.data?.[0];
+  if (criada?.id) bru.setEnvVar("reservaId", criada.id);
+}
+
+docs {
+  Refeições: Almoco, Jantar, AlmocoEJantar.
+  Apenas datas de hoje em diante, de segunda a sexta.
+}

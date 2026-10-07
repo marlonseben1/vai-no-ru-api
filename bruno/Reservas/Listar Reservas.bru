@@ -1,0 +1,37 @@
+meta {
+  name: Listar Reservas
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/reservas?page=1&pageSize=10&sort=dataReserva&order=desc
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  pageSize: 10
+  sort: dataReserva
+  order: desc
+  ~dataFiltro: essa_semana
+  ~dataInicio: 2026-10-01
+  ~dataFim: 2026-10-31
+  ~refeicao: Almoco
+  ~situacao: PENDENTE
+}
+
+script:post-response {
+  const primeira = res.body?.data?.data?.[0];
+  if (primeira?.id) bru.setEnvVar("reservaId", primeira.id);
+}
+
+docs {
+  - sort: dataReserva, refeicao, status, createdAt
+  - dataFiltro: essa_semana, semana_passada, personalizado (usa dataInicio/dataFim)
+  - refeicao: Almoco, Jantar, AlmocoEJantar
+  - situacao: PENDENTE, AGENDADA, NAO_AGENDADA, INATIVA, CANCELADA
+
+  Salva o id da primeira reserva em `reservaId`.
+}

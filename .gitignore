@@ -6,6 +6,5 @@ dist
 *.log
 
 
-/scripts
 /src/generated/prisma
 src/generated/

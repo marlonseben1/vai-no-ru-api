@@ -1,0 +1,16 @@
+meta {
+  name: Listar Cardapio
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/cardapio?dataInicio=2026-10-01&dataFim=2026-10-31
+  body: none
+  auth: none
+}
+
+params:query {
+  dataInicio: 2026-10-01
+  dataFim: 2026-10-31
+}

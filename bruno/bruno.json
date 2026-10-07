@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "vai-no-ru-api",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

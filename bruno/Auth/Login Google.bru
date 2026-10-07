@@ -1,0 +1,27 @@
+meta {
+  name: Login Google
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/google
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "token": "{{googleToken}}",
+    "aceitarPolitica": true
+  }
+}
+
+vars:pre-request {
+  baseUrl: localhost:3003
+}
+
+docs {
+  `aceitarPolitica` é obrigatório apenas no primeiro login.
+  A resposta define o cookie `vairu_session`, usado pelas rotas autenticadas.
+}

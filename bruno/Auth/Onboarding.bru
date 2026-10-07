@@ -1,0 +1,26 @@
+meta {
+  name: Onboarding
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/onboarding
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nome": "Fulano de Tal",
+    "perfil": "AlunoGraduacaoUPF"
+  }
+}
+
+docs {
+  Perfis: AlunoGraduacaoUPF, AlunoPosGraduacaoUPF, AlunoCreatiUPF,
+  AlunoIntegradoUPF, ProfessorOuComunidadeExterna, FuncionarioUPF,
+  ResidenteMultiprofissional, EstudanteRedeMunicipalEstadual.
+
+  A matrícula é deduzida do e-mail institucional.
+}
