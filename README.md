@@ -124,6 +124,19 @@ Observações:
 - A URL do formulário deve terminar em `/viewform`. Links `forms.gle` não funcionam.
 - Fora de produção, os envios do cron vão para o formulário de **staging**. Use `ENABLE_JOBS=false` se não quiser enviar nada.
 
+### Deploy
+
+Push na `main` publica no ambiente `production` e push na `staging` no ambiente `staging` (GitHub Environments). O workflow `deploy.yml` publica a imagem no GHCR e, se a variável `SSH_HOST` existir no environment, aplica as migrations e recria o container no servidor.
+
+| Variável               | Produção           | Staging                                                    |
+| ---------------------- | ------------------ | ---------------------------------------------------------- |
+| `NODE_ENV`             | `production`       | `production` (não existe valor `staging`)                  |
+| `ENABLE_JOBS`          | `true`             | `false` (`production` envia ao formulário oficial)         |
+| `DATABASE_URL`         | banco de produção  | banco separado                                             |
+| `JWT_SECRET`           | segredo próprio    | outro segredo                                              |
+| `WEB_URL`              | URL exata do front | URL exata do front de staging                              |
+| `GOOGLE_FORM_URL_PROD` | formulário oficial | qualquer formulário de teste (obrigatória em `production`) |
+
 ## Swagger
 
 Com a API rodando em desenvolvimento, a documentação interativa fica em:

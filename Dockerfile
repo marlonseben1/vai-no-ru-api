@@ -19,6 +19,11 @@ FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
+FROM deps AS migrate
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+CMD ["pnpm", "prisma", "migrate", "deploy"]
+
 FROM base AS runtime
 RUN apk add --no-cache tini
 ENV NODE_ENV=production
