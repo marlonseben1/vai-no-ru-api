@@ -1,0 +1,102 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, staging]
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    # main -> production, staging -> staging
+    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ENV_NAME: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ env.ENV_NAME }}-${{ github.sha }}
+            ${{ env.IMAGE }}:${{ env.ENV_NAME }}
+          cache-from: type=gha,scope=runtime
+          cache-to: type=gha,scope=runtime,mode=max
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrate
+          push: true
+          tags: ${{ env.IMAGE }}-migrate:${{ env.ENV_NAME }}
+          cache-from: type=gha,scope=migrate
+          cache-to: type=gha,scope=migrate,mode=max
+
+      # Só roda quando SSH_HOST (IP/hostname Tailscale do NAS) estiver no Environment.
+      - name: Conectar à tailnet
+        if: ${{ vars.SSH_HOST != '' }}
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Preparar docker-compose.prod.yml
+        id: compose
+        run: echo "b64=$(base64 -w0 docker-compose.prod.yml)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy via SSH
+        if: ${{ vars.SSH_HOST != '' }}
+        uses: appleboy/ssh-action@v1
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ github.repository_owner }}
+          IMAGE: ${{ env.IMAGE }}
+          ENV_NAME: ${{ env.ENV_NAME }}
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/volume1/docker/vai-no-ru-api' }}
+          COMPOSE_B64: ${{ steps.compose.outputs.b64 }}
+          TAG: ${{ env.ENV_NAME }}-${{ github.sha }}
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE,ENV_NAME,DEPLOY_DIR,COMPOSE_B64,TAG
+          script: |
+            set -euo pipefail
+            cd "$DEPLOY_DIR"
+            printf '%s' "$COMPOSE_B64" | base64 -d > docker-compose.prod.yml
+            # O usuário do NAS não tem home gravável: o login do docker fica na pasta do deploy.
+            export DOCKER_CONFIG="$DEPLOY_DIR/.docker"
+            mkdir -p "$DOCKER_CONFIG"
+            export IMAGE TAG ENV_FILE="$DEPLOY_DIR/$ENV_NAME.env"
+            DC="docker compose -p vai-no-ru-$ENV_NAME --env-file $ENV_FILE -f docker-compose.prod.yml"
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            docker pull "$IMAGE-migrate:$ENV_NAME"
+            docker tag "$IMAGE-migrate:$ENV_NAME" "$IMAGE-migrate:$TAG"
+            $DC pull api
+            $DC up -d db --wait
+            $DC --profile migrate run --rm migrate
+            $DC --profile tunnel up -d api cloudflared
+            docker image prune -f
