@@ -71,7 +71,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           source: docker-compose.prod.yml
-          target: vai-no-ru-api
+          target: ${{ vars.DEPLOY_DIR || '/volume1/docker/vai-no-ru-api' }}
 
       - name: Deploy via SSH
         if: ${{ vars.SSH_HOST != '' }}
@@ -81,16 +81,20 @@ jobs:
           GHCR_USER: ${{ github.repository_owner }}
           IMAGE: ${{ env.IMAGE }}
           ENV_NAME: ${{ env.ENV_NAME }}
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/volume1/docker/vai-no-ru-api' }}
           TAG: ${{ env.ENV_NAME }}-${{ github.sha }}
         with:
           host: ${{ vars.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: GHCR_TOKEN,GHCR_USER,IMAGE,ENV_NAME,TAG
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE,ENV_NAME,DEPLOY_DIR,TAG
           script: |
             set -euo pipefail
-            cd "$HOME/vai-no-ru-api"
-            export IMAGE TAG ENV_FILE="$HOME/vai-no-ru-api/$ENV_NAME.env"
+            cd "$DEPLOY_DIR"
+            # O usuário do NAS não tem home gravável: o login do docker fica na pasta do deploy.
+            export DOCKER_CONFIG="$DEPLOY_DIR/.docker"
+            mkdir -p "$DOCKER_CONFIG"
+            export IMAGE TAG ENV_FILE="$DEPLOY_DIR/$ENV_NAME.env"
             DC="docker compose -p vai-no-ru-$ENV_NAME --env-file $ENV_FILE -f docker-compose.prod.yml"
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             docker pull "$IMAGE-migrate:$ENV_NAME"
