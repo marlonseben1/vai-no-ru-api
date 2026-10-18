@@ -43,7 +43,12 @@ export const listarReservasQuerySchema = z
     sort: z.enum(ALLOWED_SORT_COLUMNS).default('dataReserva'),
     order: z.enum(['asc', 'desc']).default('desc'),
     dataFiltro: z
-      .enum(['essa_semana', 'semana_passada', 'personalizado'])
+      .enum([
+        'essa_semana',
+        'semana_passada',
+        'proxima_semana',
+        'personalizado',
+      ])
       .optional(),
     dataInicio: z.iso.date().optional(),
     dataFim: z.iso.date().optional(),
