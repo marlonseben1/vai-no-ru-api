@@ -41,19 +41,24 @@ export interface ListarReservasParams {
   pageSize: number;
   sort: SortColumn;
   order: 'asc' | 'desc';
-  dataFiltro?: 'essa_semana' | 'semana_passada' | 'personalizado';
+  dataFiltro?:
+    | 'essa_semana'
+    | 'semana_passada'
+    | 'proxima_semana'
+    | 'personalizado';
   dataInicio?: string;
   dataFim?: string;
   refeicao?: Refeicao;
   situacao?: StatusReserva;
 }
 
-function calcularSemana(offsetSemanas: 0 | 1) {
+// offsetSemanas: -1 = semana passada, 0 = esta semana, 1 = próxima semana.
+function calcularSemana(offsetSemanas: -1 | 0 | 1) {
   const hoje = dataDeHoje();
   const diaSemana = hoje.getUTCDay(); // 0 = domingo
   const diasDesdeSegunda = diaSemana === 0 ? 6 : diaSemana - 1;
 
-  const segunda = adicionarDias(hoje, -(diasDesdeSegunda + offsetSemanas * 7));
+  const segunda = adicionarDias(hoje, offsetSemanas * 7 - diasDesdeSegunda);
   const domingo = adicionarDias(segunda, 6);
   return { inicio: segunda, fim: domingo };
 }
@@ -72,6 +77,11 @@ export function buildWhereClause(
       break;
     }
     case 'semana_passada': {
+      const { inicio, fim } = calcularSemana(-1);
+      condicoesData.push({ dataReserva: { gte: inicio, lte: fim } });
+      break;
+    }
+    case 'proxima_semana': {
       const { inicio, fim } = calcularSemana(1);
       condicoesData.push({ dataReserva: { gte: inicio, lte: fim } });
       break;
