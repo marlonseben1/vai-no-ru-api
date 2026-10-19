@@ -8,12 +8,13 @@ import { Prisma, type Usuario } from '../../generated/prisma/client.js';
 import {
   AccountPendingApprovalError,
   ConsentRequiredError,
+  ForbiddenError,
   MatriculaEmUsoError,
   UnauthorizedError,
   ValidationError,
 } from '../../lib/errors.js';
 import { assinarToken } from '../../lib/jtw.js';
-import { extrairMatriculaDoEmail } from './auth.helpers.js';
+import { emailPermitido, extrairMatriculaDoEmail } from './auth.helpers.js';
 import type { onboardingSchema } from './auth.schemas.js';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
@@ -80,6 +81,12 @@ export async function loginComGoogle({
 
   if (!payload?.email || !payload.email_verified) {
     throw new UnauthorizedError('Token do Google inválido');
+  }
+
+  if (!emailPermitido(payload.email, env.ALLOWED_LOGIN_EMAILS)) {
+    throw new ForbiddenError(
+      'Este ambiente não está disponível para o seu e-mail.',
+    );
   }
 
   let usuario = await prisma.usuario.findUnique({

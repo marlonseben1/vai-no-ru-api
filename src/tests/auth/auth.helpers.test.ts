@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { extrairMatriculaDoEmail } from '../../modules/auth/auth.helpers.js';
+import {
+  emailPermitido,
+  extrairMatriculaDoEmail,
+} from '../../modules/auth/auth.helpers.js';
+
+describe('emailPermitido', () => {
+  it('permite qualquer e-mail quando a lista está vazia', () => {
+    expect(emailPermitido('qualquer@gmail.com', [])).toBe(true);
+  });
+
+  it('permite e-mail que está na lista', () => {
+    expect(emailPermitido('a@x.com', ['a@x.com', 'b@x.com'])).toBe(true);
+  });
+
+  it('ignora maiúsculas e minúsculas', () => {
+    expect(emailPermitido('A@X.com', ['a@x.com'])).toBe(true);
+  });
+
+  it('bloqueia e-mail fora da lista', () => {
+    expect(emailPermitido('c@x.com', ['a@x.com', 'b@x.com'])).toBe(false);
+  });
+});
 
 describe('extrairMatriculaDoEmail', () => {
   it('extrai a matrícula de um e-mail institucional', () => {
