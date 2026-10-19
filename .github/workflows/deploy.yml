@@ -98,5 +98,7 @@ jobs:
             $DC pull api
             $DC up -d db --wait
             $DC --profile migrate run --rm migrate
-            $DC --profile tunnel up -d api cloudflared
+            # --force-recreate: o compose não recria a API quando só o conteúdo do env_file muda.
+            $DC --profile tunnel up -d --force-recreate --no-deps api
+            $DC --profile tunnel up -d cloudflared
             docker image prune -f
