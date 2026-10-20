@@ -5,6 +5,16 @@ const optionalUrl = z.preprocess(
   z.url().optional(),
 );
 
+const emailList = z
+  .string()
+  .default('')
+  .transform((value) =>
+    value
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+  );
+
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']),
@@ -16,6 +26,7 @@ const schema = z
     GOOGLE_FORM_URL_PROD: optionalUrl,
     GOOGLE_FORM_URL_STAGING: optionalUrl,
     ENABLE_JOBS: z.stringbool().default(true),
+    ALLOWED_LOGIN_EMAILS: emailList,
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && !env.GOOGLE_FORM_URL_PROD) {
