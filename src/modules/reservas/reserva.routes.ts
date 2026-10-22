@@ -18,6 +18,7 @@ import {
   atualizarReserva,
   cancelarReserva,
   criarReservas,
+  forcarAgendamento,
   getHistoricoReserva,
   listarReservas,
   reativarReserva,
@@ -81,6 +82,18 @@ router.put(
     const { id } = res.locals.params;
     await reativarReserva(id, usuarioId);
     ApiResponse.success(res, { message: 'Reserva reativada com sucesso' });
+  },
+);
+
+router.post(
+  '/:id/forcar-agendamento',
+  authenticate,
+  validateParams(reservaIdParamsSchema),
+  async (req, res) => {
+    const usuarioId = requireUsuarioId(req);
+    const { id } = res.locals.params;
+    await forcarAgendamento(id, usuarioId);
+    ApiResponse.success(res, { message: 'Reserva agendada com sucesso' });
   },
 );
 
