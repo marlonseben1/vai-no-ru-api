@@ -36,6 +36,12 @@ export const criarReservasSchema = z
   })
   .meta({ id: 'CriarReservasRequest' });
 
+export const atualizarReservaSchema = z
+  .object({
+    refeicao: z.enum(Refeicao),
+  })
+  .meta({ id: 'AtualizarReservaRequest' });
+
 export const listarReservasQuerySchema = z
   .object({
     page: z.coerce.number().min(1).default(1),

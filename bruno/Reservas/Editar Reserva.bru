@@ -1,0 +1,21 @@
+meta {
+  name: Editar Reserva
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/v1/reservas/{{reservaId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refeicao": "AlmocoEJantar"
+  }
+}
+
+docs {
+  Só reservas PENDENTES de hoje em diante. Refeições: Almoco, Jantar, AlmocoEJantar.
+}

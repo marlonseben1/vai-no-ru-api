@@ -11,6 +11,7 @@ import {
   listarCardapioQuerySchema,
 } from '../modules/cardapio/cardapio.schemas.js';
 import {
+  atualizarReservaSchema,
   criarReservasSchema,
   listarReservasQuerySchema,
   reservaIdParamsSchema,
@@ -208,7 +209,8 @@ export const openApiDocument = createDocument({
     '/reservas': {
       post: {
         tags: ['Reservas'],
-        summary: 'Cria reservas para um ou mais dias',
+        summary:
+          'Cria reservas para um ou mais dias (dias cancelados são reativados)',
         security: [{ cookieAuth: [] }],
         requestBody: {
           content: { 'application/json': { schema: criarReservasSchema } },
@@ -298,6 +300,40 @@ export const openApiDocument = createDocument({
           },
         },
       },
+      patch: {
+        tags: ['Reservas'],
+        summary: 'Edita a refeição de uma reserva pendente',
+        security: [{ cookieAuth: [] }],
+        requestParams: { path: reservaIdParamsSchema },
+        requestBody: {
+          content: { 'application/json': { schema: atualizarReservaSchema } },
+        },
+        responses: {
+          '200': {
+            description: 'Reserva atualizada com sucesso.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: reservaItemSchema,
+                }),
+              },
+            },
+          },
+          '404': {
+            description: 'Reserva não encontrada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '409': {
+            description: 'Esta reserva não pode ser editada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '422': {
+            description: 'Prazo da nova refeição encerrado (reservas de hoje).',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
       put: {
         tags: ['Reservas'],
         summary: 'Reativa uma reserva cancelada',
@@ -321,6 +357,41 @@ export const openApiDocument = createDocument({
           },
           '409': {
             description: 'Esta reserva não pode ser reativada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
+
+    '/reservas/{id}/forcar-agendamento': {
+      post: {
+        tags: ['Reservas'],
+        summary: 'Força o envio imediato de uma reserva ao formulário do RU',
+        security: [{ cookieAuth: [] }],
+        requestParams: { path: reservaIdParamsSchema },
+        responses: {
+          '200': {
+            description: 'Reserva agendada com sucesso.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: mensagemResponseSchema,
+                }),
+              },
+            },
+          },
+          '404': {
+            description: 'Reserva não encontrada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '409': {
+            description:
+              'Reserva não está pendente/não agendada ou o prazo encerrou.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '502': {
+            description: 'O formulário recusou ou não respondeu ao envio.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },

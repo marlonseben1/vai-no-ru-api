@@ -2,21 +2,27 @@ import type { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { dataDeHoje } from '../../lib/dates.js';
 import {
+  BadGatewayError,
   ConflictError,
   NotFoundError,
   OnboardingRequiredError,
   ValidationError,
 } from '../../lib/errors.js';
 import { REFEICAO_LABEL } from '../formulario/formulario.constants.js';
+import { submitReserva } from '../formulario/formulario.service.js';
 import {
   buildWhereClause,
   formatarHorarioLimite,
   type ListarReservasParams,
   prazoEncerrado,
 } from './reserva.helpers.js';
-import type { criarReservasSchema } from './reserva.schemas.js';
+import type {
+  atualizarReservaSchema,
+  criarReservasSchema,
+} from './reserva.schemas.js';
 
 type CriarReservasInput = z.infer<typeof criarReservasSchema>;
+type AtualizarReservaInput = z.infer<typeof atualizarReservaSchema>;
 
 export async function criarReservas(
   usuarioId: string,
@@ -48,17 +54,39 @@ export async function criarReservas(
 
     const existentes = await tx.reserva.findMany({
       where: { usuarioId, dataReserva: { in: datasSolicitadas } },
-      select: { dataReserva: true },
+      select: { id: true, dataReserva: true, status: true },
     });
 
-    const datasExistentes = new Set(
-      existentes.map((e) => e.dataReserva.toISOString().slice(0, 10)),
+    const existentePorData = new Map(
+      existentes.map((e) => [e.dataReserva.toISOString().slice(0, 10), e]),
     );
 
     const reservasCriadas = [];
 
     for (const dia of input.dias) {
-      if (datasExistentes.has(dia.data)) continue;
+      const existente = existentePorData.get(dia.data);
+
+      if (existente) {
+        // dia cancelado volta a ser reservável: reaproveita a reserva (unique por usuário/data)
+        if (existente.status !== 'CANCELADA') continue;
+
+        const reativada = await tx.reserva.update({
+          where: { id: existente.id },
+          data: {
+            refeicao: dia.refeicao,
+            status: 'PENDENTE',
+            processado: false,
+            tentativas: 0,
+          },
+        });
+
+        await tx.reservaHistorico.create({
+          data: { reservaId: reativada.id, acao: 'reativada' },
+        });
+
+        reservasCriadas.push(reativada);
+        continue;
+      }
 
       const reserva = await tx.reserva.create({
         data: {
@@ -137,6 +165,49 @@ export async function cancelarReserva(reservaId: string, usuarioId: string) {
   });
 }
 
+export async function atualizarReserva(
+  reservaId: string,
+  usuarioId: string,
+  input: AtualizarReservaInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    const reserva = await tx.reserva.findFirst({
+      where: { id: reservaId, usuarioId },
+    });
+
+    if (!reserva) {
+      throw new NotFoundError('Reserva não encontrada');
+    }
+
+    const ehPassado = reserva.dataReserva < dataDeHoje();
+
+    if (ehPassado || reserva.status !== 'PENDENTE') {
+      throw new ConflictError('Esta reserva não pode ser editada');
+    }
+
+    if (reserva.refeicao === input.refeicao) return reserva;
+
+    const dataISO = reserva.dataReserva.toISOString().slice(0, 10);
+
+    if (prazoEncerrado(input.refeicao, dataISO)) {
+      throw new ValidationError(
+        `O prazo para reservar ${REFEICAO_LABEL[input.refeicao].toLowerCase()} hoje terminou às ${formatarHorarioLimite(input.refeicao)}.`,
+      );
+    }
+
+    const atualizada = await tx.reserva.update({
+      where: { id: reservaId },
+      data: { refeicao: input.refeicao },
+    });
+
+    await tx.reservaHistorico.create({
+      data: { reservaId, acao: 'editada' },
+    });
+
+    return atualizada;
+  });
+}
+
 export async function reativarReserva(reservaId: string, usuarioId: string) {
   return prisma.$transaction(async (tx) => {
     const reserva = await tx.reserva.findFirst({
@@ -173,6 +244,63 @@ export async function reativarReserva(reservaId: string, usuarioId: string) {
 
     await tx.reservaHistorico.create({
       data: { reservaId, acao: 'reativada' },
+    });
+  });
+}
+
+export async function forcarAgendamento(reservaId: string, usuarioId: string) {
+  const reserva = await prisma.reserva.findFirst({
+    where: { id: reservaId, usuarioId },
+    include: { usuario: true },
+  });
+
+  if (!reserva) {
+    throw new NotFoundError('Reserva não encontrada');
+  }
+
+  if (reserva.status !== 'PENDENTE' && reserva.status !== 'NAO_AGENDADA') {
+    throw new ConflictError('Esta reserva não pode ser agendada');
+  }
+
+  const dataISO = reserva.dataReserva.toISOString().slice(0, 10);
+
+  if (prazoEncerrado(reserva.refeicao, dataISO)) {
+    throw new ConflictError(
+      `Não é possível agendar: o prazo de hoje terminou às ${formatarHorarioLimite(reserva.refeicao)}.`,
+    );
+  }
+
+  const { usuario } = reserva;
+
+  if (!usuario.perfil) {
+    throw new ConflictError('Complete seu perfil antes de agendar');
+  }
+
+  const sucesso = await submitReserva({
+    nome: usuario.nome,
+    matricula: usuario.matricula,
+    perfil: usuario.perfil,
+    email: usuario.email,
+    refeicao: reserva.refeicao,
+    dataReserva: reserva.dataReserva,
+  });
+
+  if (!sucesso) {
+    throw new BadGatewayError(
+      'Não foi possível enviar a reserva ao formulário. Tente novamente.',
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.reserva.updateMany({
+      where: { id: reservaId, status: { in: ['PENDENTE', 'NAO_AGENDADA'] } },
+      data: { status: 'AGENDADA', processado: true },
+    });
+
+    if (count === 0) return;
+
+    await tx.reservaHistorico.create({
+      data: { reservaId, acao: 'AGENDADA_FORCADO' },
     });
   });
 }

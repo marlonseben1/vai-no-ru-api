@@ -9,13 +9,16 @@ import {
   validateQuery,
 } from '../../middlewares/validate.js';
 import {
+  atualizarReservaSchema,
   criarReservasSchema,
   listarReservasQuerySchema,
   reservaIdParamsSchema,
 } from './reserva.schemas.js';
 import {
+  atualizarReserva,
   cancelarReserva,
   criarReservas,
+  forcarAgendamento,
   getHistoricoReserva,
   listarReservas,
   reativarReserva,
@@ -57,6 +60,19 @@ router.delete(
   },
 );
 
+router.patch(
+  '/:id',
+  authenticate,
+  validateParams(reservaIdParamsSchema),
+  validateBody(atualizarReservaSchema),
+  async (req, res) => {
+    const usuarioId = requireUsuarioId(req);
+    const { id } = res.locals.params;
+    const reserva = await atualizarReserva(id, usuarioId, req.body);
+    ApiResponse.success(res, reserva);
+  },
+);
+
 router.put(
   '/:id',
   authenticate,
@@ -66,6 +82,18 @@ router.put(
     const { id } = res.locals.params;
     await reativarReserva(id, usuarioId);
     ApiResponse.success(res, { message: 'Reserva reativada com sucesso' });
+  },
+);
+
+router.post(
+  '/:id/forcar-agendamento',
+  authenticate,
+  validateParams(reservaIdParamsSchema),
+  async (req, res) => {
+    const usuarioId = requireUsuarioId(req);
+    const { id } = res.locals.params;
+    await forcarAgendamento(id, usuarioId);
+    ApiResponse.success(res, { message: 'Reserva agendada com sucesso' });
   },
 );
 
