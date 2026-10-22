@@ -80,6 +80,16 @@ export function montarPayloadFormulario(
   return payload;
 }
 
+// Tmp
+function extrairTexto(html: string): string {
+  return html
+    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
+}
+
 async function enviarFormulario(
   urlSubmit: string,
   payload: URLSearchParams,
@@ -92,10 +102,16 @@ async function enviarFormulario(
       signal: AbortSignal.timeout(TIMEOUT_ENVIO_MS),
     });
 
+    // formulário fechado: o Google redireciona para /closedform, que responde 200
+    if (response.redirected && response.url.includes('/closedform')) {
+      logger.warn('Google Forms fechado: não está aceitando respostas.');
+      return false;
+    }
+
     if (!response.ok) {
-      const corpo = await response.text().catch(() => '');
+      const html = await response.text().catch(() => '');
       logger.warn(
-        { status: response.status, corpo: corpo.slice(0, 500) },
+        { status: response.status, corpo: extrairTexto(html) },
         'Google Forms recusou o envio.',
       );
     }
