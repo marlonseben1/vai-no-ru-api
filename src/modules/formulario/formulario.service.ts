@@ -9,6 +9,7 @@ import {
 } from './formulario.constants.js';
 
 const TIMEOUT_ENVIO_MS = 15_000;
+const USER_AGENT = 'Mozilla/5.0 (compatible; vai-no-ru-api)';
 
 export interface DadosSubmitReserva {
   nome: string;
@@ -87,11 +88,16 @@ async function enviarFormulario(
     const response = await fetch(urlSubmit, {
       method: 'POST',
       body: payload,
+      headers: { 'User-Agent': USER_AGENT },
       signal: AbortSignal.timeout(TIMEOUT_ENVIO_MS),
     });
 
     if (!response.ok) {
-      logger.warn({ status: response.status }, 'Google Forms recusou o envio.');
+      const corpo = await response.text().catch(() => '');
+      logger.warn(
+        { status: response.status, corpo: corpo.slice(0, 500) },
+        'Google Forms recusou o envio.',
+      );
     }
 
     return response.ok;
