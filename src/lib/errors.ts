@@ -81,6 +81,12 @@ export class ConflictError extends HttpError {
   }
 }
 
+export class BadGatewayError extends HttpError {
+  constructor(message: string) {
+    super(HttpStatus.BAD_GATEWAY, message, undefined, 'BAD_GATEWAY');
+  }
+}
+
 export class MatriculaEmUsoError extends ConflictError {
   constructor() {
     super('Esta matrícula já está vinculada a outra conta.');

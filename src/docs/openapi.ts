@@ -363,6 +363,41 @@ export const openApiDocument = createDocument({
       },
     },
 
+    '/reservas/{id}/forcar-agendamento': {
+      post: {
+        tags: ['Reservas'],
+        summary: 'Força o envio imediato de uma reserva ao formulário do RU',
+        security: [{ cookieAuth: [] }],
+        requestParams: { path: reservaIdParamsSchema },
+        responses: {
+          '200': {
+            description: 'Reserva agendada com sucesso.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: mensagemResponseSchema,
+                }),
+              },
+            },
+          },
+          '404': {
+            description: 'Reserva não encontrada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '409': {
+            description:
+              'Reserva não está pendente/não agendada ou o prazo encerrou.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '502': {
+            description: 'O formulário recusou ou não respondeu ao envio.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
+
     '/reservas/{id}/historico': {
       get: {
         tags: ['Reservas'],

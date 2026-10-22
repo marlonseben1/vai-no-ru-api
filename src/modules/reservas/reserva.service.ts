@@ -2,12 +2,14 @@ import type { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { dataDeHoje } from '../../lib/dates.js';
 import {
+  BadGatewayError,
   ConflictError,
   NotFoundError,
   OnboardingRequiredError,
   ValidationError,
 } from '../../lib/errors.js';
 import { REFEICAO_LABEL } from '../formulario/formulario.constants.js';
+import { submitReserva } from '../formulario/formulario.service.js';
 import {
   buildWhereClause,
   formatarHorarioLimite,
@@ -242,6 +244,63 @@ export async function reativarReserva(reservaId: string, usuarioId: string) {
 
     await tx.reservaHistorico.create({
       data: { reservaId, acao: 'reativada' },
+    });
+  });
+}
+
+export async function forcarAgendamento(reservaId: string, usuarioId: string) {
+  const reserva = await prisma.reserva.findFirst({
+    where: { id: reservaId, usuarioId },
+    include: { usuario: true },
+  });
+
+  if (!reserva) {
+    throw new NotFoundError('Reserva não encontrada');
+  }
+
+  if (reserva.status !== 'PENDENTE' && reserva.status !== 'NAO_AGENDADA') {
+    throw new ConflictError('Esta reserva não pode ser agendada');
+  }
+
+  const dataISO = reserva.dataReserva.toISOString().slice(0, 10);
+
+  if (prazoEncerrado(reserva.refeicao, dataISO)) {
+    throw new ConflictError(
+      `Não é possível agendar: o prazo de hoje terminou às ${formatarHorarioLimite(reserva.refeicao)}.`,
+    );
+  }
+
+  const { usuario } = reserva;
+
+  if (!usuario.perfil) {
+    throw new ConflictError('Complete seu perfil antes de agendar');
+  }
+
+  const sucesso = await submitReserva({
+    nome: usuario.nome,
+    matricula: usuario.matricula,
+    perfil: usuario.perfil,
+    email: usuario.email,
+    refeicao: reserva.refeicao,
+    dataReserva: reserva.dataReserva,
+  });
+
+  if (!sucesso) {
+    throw new BadGatewayError(
+      'Não foi possível enviar a reserva ao formulário. Tente novamente.',
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.reserva.updateMany({
+      where: { id: reservaId, status: { in: ['PENDENTE', 'NAO_AGENDADA'] } },
+      data: { status: 'AGENDADA', processado: true },
+    });
+
+    if (count === 0) return;
+
+    await tx.reservaHistorico.create({
+      data: { reservaId, acao: 'AGENDADA_FORCADO' },
     });
   });
 }
