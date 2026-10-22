@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  atualizarReservaSchema,
   criarReservasSchema,
-  listarReservasQuerySchema,
 } from '../../modules/reservas/reserva.schemas.js';
 
 describe('criarReservasSchema', () => {
@@ -61,5 +61,19 @@ describe('criarReservasSchema', () => {
       dias: [{ data: '2026-10-08', refeicao: 'Lanche' }],
     });
     expect(resultado.success).toBe(false);
+  });
+});
+
+describe('atualizarReservaSchema', () => {
+  it('aceita uma refeição válida', () => {
+    expect(
+      atualizarReservaSchema.safeParse({ refeicao: 'AlmocoEJantar' }).success,
+    ).toBe(true);
+  });
+
+  it('rejeita refeição inválida', () => {
+    expect(
+      atualizarReservaSchema.safeParse({ refeicao: 'Lanche' }).success,
+    ).toBe(false);
   });
 });

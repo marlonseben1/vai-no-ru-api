@@ -9,11 +9,13 @@ import {
   validateQuery,
 } from '../../middlewares/validate.js';
 import {
+  atualizarReservaSchema,
   criarReservasSchema,
   listarReservasQuerySchema,
   reservaIdParamsSchema,
 } from './reserva.schemas.js';
 import {
+  atualizarReserva,
   cancelarReserva,
   criarReservas,
   getHistoricoReserva,
@@ -54,6 +56,19 @@ router.delete(
     const { id } = res.locals.params;
     await cancelarReserva(id, usuarioId);
     ApiResponse.success(res, { message: 'Reserva cancelada com sucesso' });
+  },
+);
+
+router.patch(
+  '/:id',
+  authenticate,
+  validateParams(reservaIdParamsSchema),
+  validateBody(atualizarReservaSchema),
+  async (req, res) => {
+    const usuarioId = requireUsuarioId(req);
+    const { id } = res.locals.params;
+    const reserva = await atualizarReserva(id, usuarioId, req.body);
+    ApiResponse.success(res, reserva);
   },
 );
 
