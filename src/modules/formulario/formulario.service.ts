@@ -6,6 +6,7 @@ import {
   GOOGLE_ENTRIES,
   PERFIL_LABEL,
   REFEICAO_LABEL,
+  resolverAmbienteFormulario,
 } from './formulario.constants.js';
 
 const TIMEOUT_ENVIO_MS = 15_000;
@@ -21,7 +22,7 @@ export interface DadosSubmitReserva {
 }
 
 export function getAmbienteFormulario(): AmbienteFormulario {
-  return env.NODE_ENV === 'production' ? 'PRODUCTION' : 'STAGING';
+  return resolverAmbienteFormulario(env.NODE_ENV, env.FORM_AMBIENTE);
 }
 
 export function getFormularioUrl(ambiente: AmbienteFormulario): string {

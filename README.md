@@ -117,6 +117,7 @@ Copie `.env.example` para `.env`. O arquivo de exemplo não contém credenciais 
 | `WEB_URL`                 | sim         | URL do front-end (usada no CORS)              |
 | `GOOGLE_FORM_URL_STAGING` | não         | Formulário de testes (usado fora de produção) |
 | `GOOGLE_FORM_URL_PROD`    | em produção | Formulário oficial do RU                      |
+| `FORM_AMBIENTE`           | não         | `PRODUCTION` ou `STAGING`: escolhe URL e IDs do formulário (padrão: `PRODUCTION` se `NODE_ENV=production`, senão `STAGING`) |
 | `ENABLE_JOBS`             | não         | Liga/desliga os cron jobs (padrão `true`)     |
 
 Observações:
@@ -135,7 +136,9 @@ Push na `main` publica no ambiente `production` e push na `staging` no ambiente 
 | `DATABASE_URL`         | banco de produção  | banco separado                                             |
 | `JWT_SECRET`           | segredo próprio    | outro segredo                                              |
 | `WEB_URL`              | URL exata do front | URL exata do front de staging                              |
-| `GOOGLE_FORM_URL_PROD` | formulário oficial | qualquer formulário de teste (obrigatória em `production`) |
+| `FORM_AMBIENTE`        | (não definir)      | `STAGING` (usa `GOOGLE_FORM_URL_STAGING` e os IDs do formulário de testes) |
+| `GOOGLE_FORM_URL_PROD` | formulário oficial | não usada com `FORM_AMBIENTE=STAGING`                      |
+| `GOOGLE_FORM_URL_STAGING` | não usada       | formulário de teste (obrigatória com `FORM_AMBIENTE=STAGING`) |
 
 ## Swagger
 

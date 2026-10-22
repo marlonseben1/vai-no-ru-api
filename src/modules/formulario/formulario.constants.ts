@@ -2,6 +2,13 @@ import type { Perfil, Refeicao } from '../../generated/prisma/enums.js';
 
 export type AmbienteFormulario = 'PRODUCTION' | 'STAGING';
 
+export function resolverAmbienteFormulario(
+  nodeEnv: string,
+  override?: AmbienteFormulario,
+): AmbienteFormulario {
+  return override ?? (nodeEnv === 'production' ? 'PRODUCTION' : 'STAGING');
+}
+
 interface EntriesFormulario {
   NOME: string;
   MATRICULA: string;
