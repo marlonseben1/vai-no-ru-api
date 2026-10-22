@@ -11,6 +11,7 @@ import {
   listarCardapioQuerySchema,
 } from '../modules/cardapio/cardapio.schemas.js';
 import {
+  atualizarReservaSchema,
   criarReservasSchema,
   listarReservasQuerySchema,
   reservaIdParamsSchema,
@@ -208,7 +209,8 @@ export const openApiDocument = createDocument({
     '/reservas': {
       post: {
         tags: ['Reservas'],
-        summary: 'Cria reservas para um ou mais dias',
+        summary:
+          'Cria reservas para um ou mais dias (dias cancelados são reativados)',
         security: [{ cookieAuth: [] }],
         requestBody: {
           content: { 'application/json': { schema: criarReservasSchema } },
@@ -294,6 +296,40 @@ export const openApiDocument = createDocument({
           },
           '409': {
             description: 'Esta reserva não pode ser cancelada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+      patch: {
+        tags: ['Reservas'],
+        summary: 'Edita a refeição de uma reserva pendente',
+        security: [{ cookieAuth: [] }],
+        requestParams: { path: reservaIdParamsSchema },
+        requestBody: {
+          content: { 'application/json': { schema: atualizarReservaSchema } },
+        },
+        responses: {
+          '200': {
+            description: 'Reserva atualizada com sucesso.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: reservaItemSchema,
+                }),
+              },
+            },
+          },
+          '404': {
+            description: 'Reserva não encontrada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '409': {
+            description: 'Esta reserva não pode ser editada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '422': {
+            description: 'Prazo da nova refeição encerrado (reservas de hoje).',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
