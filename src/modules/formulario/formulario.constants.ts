@@ -26,6 +26,7 @@ export const GOOGLE_ENTRIES: Record<AmbienteFormulario, EntriesFormulario> = {
     REFEICAO: 'entry.24359638',
     PERFIL: 'entry.919059448',
     DATA: 'entry.438994047',
+    EMAIL: 'emailAddress', // o form coleta e-mail (campo nativo, obrigatório)
     PAGE_HISTORY: '0,1', // O form tem 2 páginas
   },
   STAGING: {
