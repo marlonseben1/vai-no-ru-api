@@ -1,0 +1,16 @@
+meta {
+  name: Consultar CES
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/ces
+  body: none
+  auth: none
+}
+
+docs {
+  exibirPesquisa fica verdadeiro quando o usuário já tem reserva
+  e ainda não respondeu nem fechou a pesquisa.
+}
