@@ -11,6 +11,7 @@ import { errorHandler } from './middlewares/error-handler.js';
 import { notFound } from './middlewares/not-found.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { cardapioRoutes } from './modules/cardapio/cardapio.routes.js';
+import { cesRoutes } from './modules/ces/ces.routes.js';
 import { reservaRoutes } from './modules/reservas/reserva.routes.js';
 
 export const app = express();
@@ -44,6 +45,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/v1/auth', authRoutes);
 app.use('/v1/cardapio', cardapioRoutes);
+app.use('/v1/ces', cesRoutes);
 app.use('/v1/reservas', reservaRoutes);
 
 if (env.NODE_ENV !== 'production') {

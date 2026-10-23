@@ -35,7 +35,8 @@ model Usuario {
 
   onboardingConcluidoEm DateTime? @map("onboarding_concluido_em")
 
-  reservas Reserva[]
+  reservas     Reserva[]
+  pesquisasCes PesquisaCes[]
 
   @@index([status])
   @@map("usuarios")

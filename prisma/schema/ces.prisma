@@ -1,0 +1,16 @@
+model PesquisaCes {
+  id         String   @id @default(cuid())
+  usuarioId  String   @map("usuario_id")
+  // nulo quando o usuário fecha a pesquisa sem avaliar (evita perguntar de novo)
+  nota       Int?
+  comentario String?
+  // onde a pesquisa foi exibida, ex.: "primeira_reserva"
+  contexto   String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@map("pesquisas_ces")
+}
