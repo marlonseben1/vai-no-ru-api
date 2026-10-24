@@ -11,6 +11,10 @@ import {
   listarCardapioQuerySchema,
 } from '../modules/cardapio/cardapio.schemas.js';
 import {
+  cesElegibilidadeSchema,
+  registrarCesSchema,
+} from '../modules/ces/ces.schemas.js';
+import {
   atualizarReservaSchema,
   criarReservasSchema,
   listarReservasQuerySchema,
@@ -392,6 +396,65 @@ export const openApiDocument = createDocument({
           },
           '502': {
             description: 'O formulário recusou ou não respondeu ao envio.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+    },
+
+    '/ces': {
+      get: {
+        tags: ['CES'],
+        summary: 'Informa se a pesquisa de esforço (CES) deve ser exibida',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Elegibilidade do usuário à pesquisa.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: cesElegibilidadeSchema,
+                }),
+              },
+            },
+          },
+          '401': {
+            description: 'Sessão ausente ou expirada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+        },
+      },
+      post: {
+        tags: ['CES'],
+        summary: 'Registra a resposta (ou o fechamento) da pesquisa CES',
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          content: { 'application/json': { schema: registrarCesSchema } },
+        },
+        responses: {
+          '201': {
+            description: 'Avaliação registrada.',
+            content: {
+              'application/json': {
+                schema: z.object({
+                  success: z.literal(true),
+                  data: z.object({ message: z.string() }),
+                }),
+              },
+            },
+          },
+          '401': {
+            description: 'Sessão ausente ou expirada.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '409': {
+            description: 'A pesquisa já foi respondida ou não está disponível.',
+            content: { 'application/json': { schema: errorResponseSchema } },
+          },
+          '422': {
+            description:
+              'Nota fora do intervalo de 1 a 5 ou contexto inválido.',
             content: { 'application/json': { schema: errorResponseSchema } },
           },
         },
