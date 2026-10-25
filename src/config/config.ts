@@ -6,6 +6,11 @@ const optionalUrl = z.preprocess(
   z.url().optional(),
 );
 
+const optionalString = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.string().optional(),
+);
+
 const emailList = z
   .string()
   .default('')
@@ -33,8 +38,31 @@ const schema = z
     SENTRY_DSN: optionalUrl,
     ENABLE_JOBS: z.stringbool().default(true),
     ALLOWED_LOGIN_EMAILS: emailList,
+    EMAIL_ENABLED: z.stringbool().default(false),
+    SMTP_HOST: optionalString,
+    SMTP_PORT: z.coerce.number().default(465),
+    SMTP_USER: optionalString,
+    SMTP_PASS: optionalString,
+    EMAIL_FROM: optionalString,
   })
   .superRefine((env, ctx) => {
+    if (env.EMAIL_ENABLED) {
+      for (const campo of [
+        'SMTP_HOST',
+        'SMTP_USER',
+        'SMTP_PASS',
+        'EMAIL_FROM',
+      ] as const) {
+        if (!env[campo]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [campo],
+            message: 'Obrigatória quando EMAIL_ENABLED=true.',
+          });
+        }
+      }
+    }
+
     const ambienteFormulario = resolverAmbienteFormulario(
       env.NODE_ENV,
       env.FORM_AMBIENTE,
