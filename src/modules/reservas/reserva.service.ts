@@ -10,6 +10,7 @@ import {
 } from '../../lib/errors.js';
 import { REFEICAO_LABEL } from '../formulario/formulario.constants.js';
 import { submitReserva } from '../formulario/formulario.service.js';
+import { enviarEmailReservaAgendada } from '../notificacoes/notificacoes.service.js';
 import {
   buildWhereClause,
   formatarHorarioLimite,
@@ -291,18 +292,24 @@ export async function forcarAgendamento(reservaId: string, usuarioId: string) {
     );
   }
 
-  await prisma.$transaction(async (tx) => {
+  const agendadaAgora = await prisma.$transaction(async (tx) => {
     const { count } = await tx.reserva.updateMany({
       where: { id: reservaId, status: { in: ['PENDENTE', 'NAO_AGENDADA'] } },
       data: { status: 'AGENDADA', processado: true },
     });
 
-    if (count === 0) return;
+    if (count === 0) return false;
 
     await tx.reservaHistorico.create({
       data: { reservaId, acao: 'AGENDADA_FORCADO' },
     });
+
+    return true;
   });
+
+  if (agendadaAgora) {
+    await enviarEmailReservaAgendada(usuario.email, reserva);
+  }
 }
 
 export async function getHistoricoReserva(
