@@ -119,10 +119,14 @@ Copie `.env.example` para `.env`. O arquivo de exemplo não contém credenciais 
 | `GOOGLE_FORM_URL_PROD`    | em produção | Formulário oficial do RU                      |
 | `FORM_AMBIENTE`           | não         | `PRODUCTION` ou `STAGING`: escolhe URL e IDs do formulário (padrão: `PRODUCTION` se `NODE_ENV=production`, senão `STAGING`) |
 | `ENABLE_JOBS`             | não         | Liga/desliga os cron jobs (padrão `true`)     |
+| `EMAIL_ENABLED`           | não         | Liga o envio de e-mails de reserva (padrão `false`) |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM` | com `EMAIL_ENABLED` | Credenciais SMTP (Gmail com senha de app) |
+| `SMTP_PORT`               | não         | Porta SMTP (padrão `465`, TLS)                |
 
 Observações:
 
 - A URL do formulário deve terminar em `/viewform`. Links `forms.gle` não funcionam.
+- Com `EMAIL_ENABLED=true`, o usuário recebe um e-mail quando a reserva é agendada e quando falha de vez (após 3 tentativas). Falha no envio é só logada.
 - Fora de produção, os envios do cron vão para o formulário de **staging**. Use `ENABLE_JOBS=false` se não quiser enviar nada.
 
 ### Deploy

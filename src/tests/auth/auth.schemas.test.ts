@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loginSchema, onboardingSchema } from '../../modules/auth/auth.schemas.js';
+import { onboardingSchema } from '../../modules/auth/auth.schemas.js';
 
 describe('onboardingSchema', () => {
   it('aceita nome e perfil válidos', () => {

@@ -8,6 +8,10 @@ import { logger } from '../lib/logger.js';
 import { sentry } from '../lib/sentry.js';
 import { submitReserva } from '../modules/formulario/formulario.service.js';
 import {
+  enviarEmailReservaAgendada,
+  enviarEmailReservaNaoAgendada,
+} from '../modules/notificacoes/notificacoes.service.js';
+import {
   marcarAgendada,
   registrarTentativaFalha,
 } from '../modules/reservas/reserva.service.js';
@@ -58,8 +62,11 @@ async function submitReservasPendentes(
           { job, reservaId: reserva.id },
           'Reserva de usuário sem perfil.',
         );
-        await registrarTentativaFalha(reserva.id);
+        const esgotouTentativas = await registrarTentativaFalha(reserva.id);
         resumo.falhas++;
+        if (esgotouTentativas) {
+          await enviarEmailReservaNaoAgendada(usuario.email, reserva);
+        }
         continue;
       }
 
@@ -73,11 +80,17 @@ async function submitReservasPendentes(
       });
 
       if (sucesso) {
-        await marcarAgendada(reserva.id);
+        const agendadaAgora = await marcarAgendada(reserva.id);
         resumo.agendadas++;
+        if (agendadaAgora) {
+          await enviarEmailReservaAgendada(usuario.email, reserva);
+        }
       } else {
-        await registrarTentativaFalha(reserva.id);
+        const esgotouTentativas = await registrarTentativaFalha(reserva.id);
         resumo.falhas++;
+        if (esgotouTentativas) {
+          await enviarEmailReservaNaoAgendada(usuario.email, reserva);
+        }
       }
     } catch (err) {
       resumo.erros++;
