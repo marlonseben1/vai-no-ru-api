@@ -30,6 +30,7 @@ const schema = z
       (value) => (value === '' ? undefined : value),
       z.enum(['PRODUCTION', 'STAGING']).optional(),
     ),
+    SENTRY_DSN: optionalUrl,
     ENABLE_JOBS: z.stringbool().default(true),
     ALLOWED_LOGIN_EMAILS: emailList,
   })

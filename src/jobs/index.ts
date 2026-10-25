@@ -4,6 +4,7 @@ import {
   type JanelaEnvio,
 } from '../constants/janelas-envio.js';
 import { logger } from '../lib/logger.js';
+import { sentry } from '../lib/sentry.js';
 import { getAmbienteFormulario } from '../modules/formulario/formulario.service.js';
 import { aguardarExecucoes, executarJob } from './submit-reservas.js';
 
@@ -58,6 +59,7 @@ export function iniciarJobs(): void {
           );
         } catch (err) {
           logger.error({ err, job: agendamento.name }, 'Job falhou.');
+          sentry.capturar(err, { job: agendamento.name });
         }
       },
       { name: agendamento.name, timezone: FUSO, noOverlap: true },

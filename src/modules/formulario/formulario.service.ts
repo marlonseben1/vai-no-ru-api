@@ -1,6 +1,7 @@
 import { env } from '../../config/config.js';
 import type { Perfil, Refeicao } from '../../generated/prisma/enums.js';
 import { logger } from '../../lib/logger.js';
+import { sentry } from '../../lib/sentry.js';
 import {
   type AmbienteFormulario,
   GOOGLE_ENTRIES,
@@ -120,6 +121,7 @@ async function enviarFormulario(
     return response.ok;
   } catch (err) {
     logger.error({ err }, 'Falha de rede ao enviar ao Google Forms.');
+    sentry.capturar(err, { origem: 'google-forms' });
     return false;
   }
 }
