@@ -339,36 +339,42 @@ export async function getHistoricoReserva(
 
 const MAX_TENTATIVAS = 3;
 
-export async function marcarAgendada(reservaId: string) {
-  await prisma.$transaction(async (tx) => {
+/** Retorna true quando esta chamada agendou a reserva (false se ela já não estava PENDENTE). */
+export async function marcarAgendada(reservaId: string): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
     const { count } = await tx.reserva.updateMany({
       where: { id: reservaId, status: 'PENDENTE' },
       data: { status: 'AGENDADA', processado: true },
     });
 
-    if (count === 0) return;
+    if (count === 0) return false;
 
     await tx.reservaHistorico.create({
       data: { reservaId, acao: 'AGENDADA' },
     });
+
+    return true;
   });
 }
 
-export async function registrarTentativaFalha(reservaId: string) {
-  await prisma.$transaction(async (tx) => {
+/** Retorna true quando as tentativas se esgotaram (reserva virou NAO_AGENDADA). */
+export async function registrarTentativaFalha(
+  reservaId: string,
+): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
     const { count } = await tx.reserva.updateMany({
       where: { id: reservaId, status: 'PENDENTE' },
       data: { tentativas: { increment: 1 } },
     });
 
-    if (count === 0) return;
+    if (count === 0) return false;
 
     const reserva = await tx.reserva.findUniqueOrThrow({
       where: { id: reservaId },
       select: { tentativas: true },
     });
 
-    if (reserva.tentativas < MAX_TENTATIVAS) return;
+    if (reserva.tentativas < MAX_TENTATIVAS) return false;
 
     await tx.reserva.update({
       where: { id: reservaId },
@@ -378,5 +384,7 @@ export async function registrarTentativaFalha(reservaId: string) {
     await tx.reservaHistorico.create({
       data: { reservaId, acao: 'nao_agendada' },
     });
+
+    return true;
   });
 }
