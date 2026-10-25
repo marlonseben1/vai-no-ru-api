@@ -3,6 +3,7 @@ import { env } from '../config/config.js';
 import { HttpStatus } from '../constants/http-status.js';
 import { HttpError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
+import { sentry } from '../lib/sentry.js';
 
 export function errorHandler(
   error: unknown,
@@ -16,6 +17,7 @@ export function errorHandler(
         { err: error, path: req.path, method: req.method },
         error.message,
       );
+      sentry.capturar(error, { path: req.path, method: req.method });
     }
     res.status(error.status).json({
       success: false,
@@ -30,6 +32,7 @@ export function errorHandler(
     { err: error, path: req.path, method: req.method },
     'Unhandled error',
   );
+  sentry.capturar(error, { path: req.path, method: req.method });
 
   res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
     success: false,

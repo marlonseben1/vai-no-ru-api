@@ -1,8 +1,10 @@
+import './lib/sentry.js';
 import { app } from './app.js';
 import { env } from './config/config.js';
 import { prisma } from './db/prisma.js';
 import { iniciarJobs, pararJobs } from './jobs/index.js';
 import { logger } from './lib/logger.js';
+import { sentry } from './lib/sentry.js';
 
 const server = app.listen(env.PORT, () => {
   logger.info({ porta: env.PORT }, 'API rodando.');
@@ -33,10 +35,12 @@ process.on('SIGINT', () => void encerrar('SIGINT'));
 
 process.on('unhandledRejection', (reason) => {
   logger.fatal({ err: reason }, 'Unhandled rejection');
-  process.exit(1);
+  sentry.capturar(reason, { origem: 'unhandledRejection' });
+  void sentry.flush().finally(() => process.exit(1));
 });
 
 process.on('uncaughtException', (error) => {
   logger.fatal({ err: error }, 'Uncaught exception');
-  process.exit(1);
+  sentry.capturar(error, { origem: 'uncaughtException' });
+  void sentry.flush().finally(() => process.exit(1));
 });

@@ -5,6 +5,7 @@ import {
 import { prisma } from '../db/prisma.js';
 import { dataDeHoje, getDataDeHojeISO } from '../lib/dates.js';
 import { logger } from '../lib/logger.js';
+import { sentry } from '../lib/sentry.js';
 import { submitReserva } from '../modules/formulario/formulario.service.js';
 import {
   marcarAgendada,
@@ -84,6 +85,7 @@ async function submitReservasPendentes(
         { err, job, reservaId: reserva.id },
         'Erro ao processar reserva.',
       );
+      sentry.capturar(err, { job, reservaId: reserva.id });
     }
   }
 
